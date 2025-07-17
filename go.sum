@@ -1,0 +1,4 @@
+filippo.io/nistec v0.0.3 h1:h336Je2jRDZdBCLy2fLDUd9E2unG32JLwcJi0JQE9Cw=
+filippo.io/nistec v0.0.3/go.mod h1:84fxC9mi+MhC2AERXI4LSa8cmSVOzrFikg6hZ4IfCyw=
+github.com/mit-plv/fiat-crypto/fiat-go v0.0.0-20250714202004-86bd29757f3d h1:1i81pEdHsofa//r5s2VeP3iAR1wcYIVx12rgRyUavjk=
+github.com/mit-plv/fiat-crypto/fiat-go v0.0.0-20250714202004-86bd29757f3d/go.mod h1:59UI5/2yBTcSl1/+qCCOTsfXYy290H670oWjGFRqOLs=

@@ -116,12 +116,13 @@ func TestFeSqrt(t *testing.T) {
 		t.Run(fmt.Sprintf("feSqrt(%x)", feToBytes(test.x)), func(t *testing.T) {
 			t.Parallel()
 
-			if got, want := feSqrt(test.x), test.want; !(got == nil && want == nil || feEqual(got, want)) {
-				if want == nil {
-					t.Errorf("feInvert(%x) = %x, want = nil", feToBytes(test.x), feToBytes(got))
-				} else {
-					t.Errorf("feInvert(%x) = %x, want = %x", feToBytes(test.x), feToBytes(got), feToBytes(want))
-				}
+			got, want := feSqrt(test.x), test.want
+			if got != nil && want == nil {
+				t.Errorf("feSqrt(%x) = %x, want nil", feToBytes(test.x), feToBytes(got))
+			} else if got == nil && want != nil {
+				t.Errorf("feSqrt(%x) = nil, want %x", feToBytes(test.x), feToBytes(want))
+			} else if got != nil && want != nil && !feEqual(got, want) {
+				t.Errorf("feSqrt(%x) = %x, want = %x", feToBytes(test.x), feToBytes(got), feToBytes(want))
 			}
 		})
 	}

@@ -1,11 +1,8 @@
 package elligator_squared_p256
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"errors"
 	"io"
-	"math/big"
 
 	"github.com/mit-plv/fiat-crypto/fiat-go/64/p256"
 )
@@ -13,10 +10,12 @@ import (
 var (
 	// ErrInvalidEncoding is returned when the given encoded point is malformed.
 	ErrInvalidEncoding = errors.New("elligator_squared_p256: invalid encoding")
+	// ErrInvalidPoint is returned when the given point is not an uncompressed SEC point.
+	ErrInvalidPoint = errors.New("elligator_squared_p256: invalid point")
 )
 
-// Decode maps the encoded point to a valid ecdsa.PublicKey or returns an error.
-func Decode(b []byte) (*ecdsa.PublicKey, error) {
+// Decode maps the Elligator Squared-encoded point to an uncompressed SEC-encoded point.
+func Decode(b []byte) ([]byte, error) {
 	if len(b) != 64 {
 		return nil, ErrInvalidEncoding
 	}
@@ -25,19 +24,20 @@ func Decode(b []byte) (*ecdsa.PublicKey, error) {
 	x1, y1 := f(u)
 	x2, y2 := f(v)
 	x3, y3 := p256Add(x1, y1, x2, y2)
-	return &ecdsa.PublicKey{
-		Curve: elliptic.P256(),
-		X:     new(big.Int).SetBytes(feToBytes(x3)),
-		Y:     new(big.Int).SetBytes(feToBytes(y3)),
-	}, nil
+
+	var out [65]byte
+	out[0] = 4
+	copy(out[1:33], feToBytes(x3))
+	copy(out[33:], feToBytes(y3))
+	return out[:], nil
 }
 
-// Encode maps the given point to a random 64-byte bitstring.
+// Encode maps the given uncompressed SEC-encoded point to a random 64-byte bitstring.
 //
 // Panics if reading from rand returns an error.
-func Encode(p *ecdsa.PublicKey, rand io.Reader) []byte {
-	if p.Curve != elliptic.P256() {
-		panic("elligator_squared_p256: invalid elliptic curve")
+func Encode(p []byte, rand io.Reader) ([]byte, error) {
+	if len(p) != 65 || p[0] != 4 {
+		return nil, ErrInvalidPoint
 	}
 
 	var buf [64]byte
@@ -53,7 +53,7 @@ func Encode(p *ecdsa.PublicKey, rand io.Reader) []byte {
 
 		// Map the field element to a point and calculate the difference between the random point
 		// and the input point.
-		x1, y1 := feFromBytes(p.X.Bytes()), feFromBytes(p.Y.Bytes())
+		x1, y1 := feFromBytes(p[1:33]), feFromBytes(p[33:])
 		x2, y2 := f(u)
 		p256.Opp(y2, y2)
 		x3, y3 := p256Add(x1, y1, x2, y2)
@@ -76,7 +76,7 @@ func Encode(p *ecdsa.PublicKey, rand io.Reader) []byte {
 		if v != nil {
 			copy(buf[:32], feToBytes(u))
 			copy(buf[32:], feToBytes(v))
-			return buf[:]
+			return buf[:], nil
 		}
 	}
 

@@ -2,8 +2,7 @@ package elligator_squared_p256
 
 import (
 	"bytes"
-	"crypto/ecdsa"
-	"crypto/elliptic"
+	"crypto/ecdh"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -13,36 +12,48 @@ import (
 )
 
 func Example() {
-	k, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	// Generate a P-256 ECDH key pair.
+	k, err := ecdh.P256().GenerateKey(rand.Reader)
 	if err != nil {
 		panic(err)
 	}
 
-	encoded := Encode(&k.PublicKey, rand.Reader)
+	// Encode the public key.
+	encoded, err := Encode(k.PublicKey().Bytes(), rand.Reader)
+	if err != nil {
+		panic(err)
+	}
+
+	// Decode the public key.
 	qP, err := Decode(encoded)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(k.PublicKey.Equal(qP))
+	// Compare the two.
+	fmt.Println(bytes.Equal(k.PublicKey().Bytes(), qP))
 	// Output: true
 }
 
 func TestRoundTrip(t *testing.T) {
 	t.Parallel()
 	for i := 0; i < 1_000; i++ {
-		k, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		k, err := ecdh.P256().GenerateKey(rand.Reader)
 		if err != nil {
-			panic(err)
+			t.Fatal(err)
 		}
 
-		encoded := Encode(&k.PublicKey, rand.Reader)
+		encoded, err := Encode(k.PublicKey().Bytes(), rand.Reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		q, err := Decode(encoded)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if got, want := elliptic.MarshalCompressed(q.Curve, q.X, q.Y), elliptic.MarshalCompressed(k.Curve, k.X, k.Y); !bytes.Equal(got, want) {
+		if got, want := q, k.PublicKey().Bytes(); !bytes.Equal(got, want) {
 			t.Fatalf("Decode(%x) = %x, want = %x", encoded, got, want)
 		}
 	}
@@ -272,43 +283,43 @@ func TestDecode(t *testing.T) {
 	}{
 		{
 			x:    "6dab76bdcab43eb44959c0c57dd4f771625177a2f41bb407797a2d6a0ec64db011d88d5ec0faff56e1acba5c00e9fe317de9a3ac95c1421dc01bae9248a0e910",
-			want: "03083c0f5503e23eaabca86f32cbf603eb1fbb037701b9bf94d053ce57a84e367c",
+			want: "04083c0f5503e23eaabca86f32cbf603eb1fbb037701b9bf94d053ce57a84e367cf2e282d17fd64220c64c9fe12e347971b86760d30821f75cdae9bfb0294ab5df",
 		},
 		{
 			x:    "39e8af2c9d255428a7e7cf8b98059451ed49fd89f550dc2221738fa83c1015b64eea07d779fa52cc3ad50fdb8620da352712bc51e9e561bee17bc9d2e628f266",
-			want: "02db78e1a639cb19deaee75a62a88da16efa776f339cd6cac8d7f1fadf93c8e840",
+			want: "04db78e1a639cb19deaee75a62a88da16efa776f339cd6cac8d7f1fadf93c8e8405b4e8291a9e4d46677d7e25f66ae3dcdcdcb568ad7f5850ee5dc5dfd4b9d6620",
 		},
 		{
 			x:    "b13041611796aad2608538a088bbce53b7794ed8d2c7586337eec0d067ff7bf776781e689e1768f65ee2146edfc4ffaa51bda50ad84c5f8cc3662783f1250712",
-			want: "02f9f6dbbb2cfa228e0ea43c75559d423dd2ddfd793ca0d6eb33e2ac67461d82ef",
+			want: "04f9f6dbbb2cfa228e0ea43c75559d423dd2ddfd793ca0d6eb33e2ac67461d82ef9e5aaac6a27441e216db395fe2985776d451255c19f7039826195b124c516d58",
 		},
 		{
 			x:    "37d2ae5538d441b23681550f6014922758184f3cc62b54fd0c038f19fc76aa00fe7cae32f06d4fc1aaf6a65cd15b9d58be48f6b3e62d5929c3b1bf62ad7d2c0f",
-			want: "031130a8d0fbc8182df8329f163d7e95a2dd8e92ae34eb1f10aee6434d30b6f3d0",
+			want: "041130a8d0fbc8182df8329f163d7e95a2dd8e92ae34eb1f10aee6434d30b6f3d00c04fc2f16f9c9fa1fa858e14d87632827c930495ca2d00b441f4f9139bde577",
 		},
 		{
 			x:    "23dbc9d9404d088840841c1b1d501514e730b1135ac5dcbac36fb43ec21265c6bd62f065356ba21726062b9f3c18b04deda4347dabce888865842fcfcbbe9e30",
-			want: "0286918545b2e651ec95c7c973c9e0e821b345b4c638fb197fa6af70bae23b8871",
+			want: "0486918545b2e651ec95c7c973c9e0e821b345b4c638fb197fa6af70bae23b8871f3a7b5c8605304cb018c1380f6f88c49bab0f6cd2ffa296c8d1cfb9cd8938dda",
 		},
 		{
 			x:    "33515a7579f28af148e8521d9d9293c62503c825167cf2dfcc5f37abe2a531a3d95e4247f931e387743505ac6b50c8e65c1817c2c648457cb77743cdfec3267e",
-			want: "0237718f9fcdaa3d3e2e3d52f5da33610a327aa859f1a71acb5c3b367def71a81d",
+			want: "0437718f9fcdaa3d3e2e3d52f5da33610a327aa859f1a71acb5c3b367def71a81d9609d57351b22d5d3d9b59c502a023658fca33ea9670c32c5bf59391f30ef900",
 		},
 		{
 			x:    "daa995f294a201a29e46fc49dc2a576285e8841aae8ceb5b673923c7c735123220a464a600b1e9fbc38696bafe44e8517b76d601d75795aee2597ca4778de4fe",
-			want: "03d420b0263099d74a07f48e45c3f9ca446dad63dbcfdb956c220036c2c17fe4cc",
+			want: "04d420b0263099d74a07f48e45c3f9ca446dad63dbcfdb956c220036c2c17fe4cc1765608b3a04925d406d60ab1d003da21b000a50937f6c9e6f643e1b05a1e977",
 		},
 		{
 			x:    "b33b932fe4121ad817db33cb5f9875ecd845d340d3e27274e6c7cb19e81f1454e36c5be5d301fcfec4c4f0d4488d48eadbacff75ae9ec72e513cebb7edbf7ee2",
-			want: "021b71329bbe87d4040b4a636596d2e715d2e9317aea1c98dcf3af8b2bf1185940",
+			want: "041b71329bbe87d4040b4a636596d2e715d2e9317aea1c98dcf3af8b2bf11859401ec4c81fa4ec0f983388457a574dc4da154e6f7b29b617c3cb2c8113c54e7eb4",
 		},
 		{
 			x:    "84204fb69149775bca9e5481221bc694b38d84b37255e3f4273e67275cf5c35264725f9b9121e05a7f91fd19b242e74ea1b0cb12aae0aa2e18a35be45877a11a",
-			want: "0390fab5975dd5d4b4c1cc517b4ca1b15d7705729fa54667a45ee760bcb83b5b9c",
+			want: "0490fab5975dd5d4b4c1cc517b4ca1b15d7705729fa54667a45ee760bcb83b5b9cc3a41c2bf38e1a44cd1204287f4aa4e549f638fa677f7cdb02ea3977fee41ce7",
 		},
 		{
 			x:    "465dbe10735a2a019d7d48efa6c96ff262a06478f3024dc3d38552956d74d8213283fd22bcd3b2432f2fc2f7a2313e1e5b13c44ff018c45089c47cb2f2413fda",
-			want: "0280f21f22b85b8acf54e878227540fc34e74f5b67da801d123890b5a02a386299",
+			want: "0480f21f22b85b8acf54e878227540fc34e74f5b67da801d123890b5a02a386299d2158a81318befb98129cb9a582aa1795f2d5ca43025db08c0f6006e16006b06",
 		},
 	}
 	for _, test := range tests {
@@ -324,7 +335,7 @@ func TestDecode(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if got := hex.EncodeToString(elliptic.MarshalCompressed(p.Curve, p.X, p.Y)); p != nil && got != test.want {
+			if got := hex.EncodeToString(p); p != nil && got != test.want {
 				t.Errorf("Decode(%s) = %s, want = %s", test.x, got, test.want)
 			}
 		})

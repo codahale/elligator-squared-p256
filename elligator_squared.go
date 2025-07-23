@@ -33,8 +33,6 @@ func Decode(b []byte) ([]byte, error) {
 }
 
 // Encode maps the given uncompressed SEC-encoded point to a random 64-byte bitstring.
-//
-// Panics if reading from rand returns an error.
 func Encode(p []byte, rand io.Reader) ([]byte, error) {
 	if len(p) != 65 || p[0] != 4 {
 		return nil, ErrInvalidPoint
@@ -44,7 +42,7 @@ func Encode(p []byte, rand io.Reader) ([]byte, error) {
 	for i := 0; i < 1_000_000; i++ {
 		// Generate a random field element \not\in {-1, 0, 1}.
 		if _, err := io.ReadFull(rand, buf[:32]); err != nil {
-			panic(err)
+			return nil, err
 		}
 		u := feFromBytes(buf[:32])
 		if feEqual(u, &negOne) || feEqual(u, &zero) || feEqual(u, &one) {
@@ -66,7 +64,7 @@ func Encode(p []byte, rand io.Reader) ([]byte, error) {
 
 		// Pick a random biquadratic root from [0,4).
 		if _, err := io.ReadFull(rand, buf[:1]); err != nil {
-			panic(err)
+			return nil, err
 		}
 		j := buf[0] % 4
 

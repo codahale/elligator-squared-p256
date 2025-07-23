@@ -1,4 +1,4 @@
-package elligator_squared_p256
+package elligator
 
 import (
 	"errors"
@@ -9,9 +9,9 @@ import (
 
 var (
 	// ErrInvalidEncoding is returned when the given encoded point is malformed.
-	ErrInvalidEncoding = errors.New("elligator_squared_p256: invalid encoding")
+	ErrInvalidEncoding = errors.New("elligator: invalid encoding")
 	// ErrInvalidPoint is returned when the given point is not an uncompressed SEC point.
-	ErrInvalidPoint = errors.New("elligator_squared_p256: invalid point")
+	ErrInvalidPoint = errors.New("elligator: invalid point")
 )
 
 // Decode maps the Elligator Squared-encoded point to an uncompressed SEC-encoded point.
@@ -80,7 +80,7 @@ func Encode(p []byte, rand io.Reader) ([]byte, error) {
 		}
 	}
 
-	panic("elliqator_squared_p256: failed to find candidate, suspect RNG failure")
+	panic("elliqator: failed to find candidate, suspect RNG failure")
 }
 
 func f(u *p256.MontgomeryDomainFieldElement) (x, y *p256.MontgomeryDomainFieldElement) {

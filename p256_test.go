@@ -1,4 +1,4 @@
-package elligator_squared_p256
+package elligator
 
 import (
 	"fmt"

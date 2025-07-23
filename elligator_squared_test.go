@@ -35,6 +35,33 @@ func Example() {
 	// Output: true
 }
 
+func BenchmarkEncode(b *testing.B) {
+	k, err := ecdh.P256().GenerateKey(rand.Reader)
+	if err != nil {
+		b.Fatal(err)
+	}
+	p := k.PublicKey().Bytes()
+
+	for b.Loop() {
+		if _, err := Encode(p, rand.Reader); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkDecode(b *testing.B) {
+	e, err := hex.DecodeString("d63d2829acfae73ecf9ba818dfd0431fd1ba6c459d54db40bc5500220268e6279ac94968d2c32fe46e1ca3db1dba72b86eafa0857865c01fe63d62b718789e80")
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	for b.Loop() {
+		if _, err := Decode(e); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 func TestRoundTrip(t *testing.T) {
 	t.Parallel()
 	for i := 0; i < 1_000; i++ {

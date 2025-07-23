@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdh"
 	"crypto/rand"
+	"crypto/sha3"
 	"encoding/hex"
 	"fmt"
 	"testing"
@@ -36,14 +37,17 @@ func Example() {
 }
 
 func BenchmarkEncode(b *testing.B) {
-	k, err := ecdh.P256().GenerateKey(rand.Reader)
+	// Use CSHAKE128 as a deterministic source of "random" data to allow for deterministic benchmarking.
+	prng := sha3.NewCSHAKE128([]byte("elligator-squared-p256-benchmark"), nil)
+
+	k, err := ecdh.P256().GenerateKey(prng)
 	if err != nil {
 		b.Fatal(err)
 	}
 	p := k.PublicKey().Bytes()
 
 	for b.Loop() {
-		if _, err := Encode(p, rand.Reader); err != nil {
+		if _, err := Encode(p, prng); err != nil {
 			b.Fatal(err)
 		}
 	}

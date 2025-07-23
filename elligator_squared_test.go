@@ -2,57 +2,48 @@ package elligator_squared_p256
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"testing"
 
-	"filippo.io/nistec"
 	"github.com/mit-plv/fiat-crypto/fiat-go/64/p256"
 )
 
 func Example() {
-	var k [32]byte
-	if _, err := rand.Read(k[:]); err != nil {
-		panic(err)
-	}
-
-	q, err := nistec.NewP256Point().ScalarBaseMult(k[:])
+	k, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		panic(err)
 	}
 
-	encoded := Encode(q, rand.Reader)
+	encoded := Encode(&k.PublicKey, rand.Reader)
 	qP, err := Decode(encoded)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(bytes.Equal(q.Bytes(), qP.Bytes()))
+	fmt.Println(k.PublicKey.Equal(qP))
 	// Output: true
 }
 
 func TestRoundTrip(t *testing.T) {
 	t.Parallel()
-	var k [32]byte
 	for i := 0; i < 1_000; i++ {
-		if _, err := rand.Read(k[:]); err != nil {
-			t.Fatal(err)
+		k, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			panic(err)
 		}
 
-		q, err := nistec.NewP256Point().ScalarBaseMult(k[:])
+		encoded := Encode(&k.PublicKey, rand.Reader)
+		q, err := Decode(encoded)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		encoded := Encode(q, rand.Reader)
-		qP, err := Decode(encoded)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if got, want := qP, q; !bytes.Equal(got.Bytes(), want.Bytes()) {
-			t.Errorf("Decode(%x) = %v, want = %v", encoded, got, want)
+		if got, want := elliptic.MarshalCompressed(q.Curve, q.X, q.Y), elliptic.MarshalCompressed(k.Curve, k.X, k.Y); !bytes.Equal(got, want) {
+			t.Fatalf("Decode(%x) = %x, want = %x", encoded, got, want)
 		}
 	}
 }
@@ -321,7 +312,7 @@ func TestDecode(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("Decode(%x)", test.x), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Decode(%s)", test.x), func(t *testing.T) {
 			t.Parallel()
 			b, err := hex.DecodeString(test.x)
 			if err != nil {
@@ -333,8 +324,8 @@ func TestDecode(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if got := hex.EncodeToString(p.BytesCompressed()); p != nil && got != test.want {
-				t.Errorf("Decode(%q) = %q, want = %q", test.x, got, test.want)
+			if got := hex.EncodeToString(elliptic.MarshalCompressed(p.Curve, p.X, p.Y)); p != nil && got != test.want {
+				t.Errorf("Decode(%s) = %s, want = %s", test.x, got, test.want)
 			}
 		})
 	}

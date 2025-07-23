@@ -1,10 +1,12 @@
 package elligator_squared_p256
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"errors"
 	"io"
+	"math/big"
 
-	"filippo.io/nistec"
 	"github.com/mit-plv/fiat-crypto/fiat-go/64/p256"
 )
 
@@ -13,32 +15,31 @@ var (
 	ErrInvalidEncoding = errors.New("elligator_squared_p256: invalid encoding")
 )
 
-// Decode maps the encoded point to a valid nistec.P256Point or returns an error.
-func Decode(b []byte) (*nistec.P256Point, error) {
+// Decode maps the encoded point to a valid ecdsa.PublicKey or returns an error.
+func Decode(b []byte) (*ecdsa.PublicKey, error) {
 	if len(b) != 64 {
 		return nil, ErrInvalidEncoding
 	}
 
 	u, v := feFromBytes(b[:32]), feFromBytes(b[32:])
-
-	p, err := p256Affine(f(u))
-	if err != nil {
-		return nil, err
-	}
-
-	q, err := p256Affine(f(v))
-	if err != nil {
-		return nil, err
-	}
-
-	p.Add(p, q)
-	return p, nil
+	x1, y1 := f(u)
+	x2, y2 := f(v)
+	x3, y3 := p256Add(x1, y1, x2, y2)
+	return &ecdsa.PublicKey{
+		Curve: elliptic.P256(),
+		X:     new(big.Int).SetBytes(feToBytes(x3)),
+		Y:     new(big.Int).SetBytes(feToBytes(y3)),
+	}, nil
 }
 
 // Encode maps the given point to a random 64-byte bitstring.
 //
 // Panics if reading from rand returns an error.
-func Encode(p *nistec.P256Point, rand io.Reader) []byte {
+func Encode(p *ecdsa.PublicKey, rand io.Reader) []byte {
+	if p.Curve != elliptic.P256() {
+		panic("elligator_squared_p256: invalid elliptic curve")
+	}
+
 	var buf [64]byte
 	for i := 0; i < 1_000_000; i++ {
 		// Generate a random field element \not\in {-1, 0, 1}.
@@ -52,36 +53,26 @@ func Encode(p *nistec.P256Point, rand io.Reader) []byte {
 
 		// Map the field element to a point and calculate the difference between the random point
 		// and the input point.
-		q, err := p256Affine(f(u))
-		if err != nil {
-			panic(err)
-		}
-		q.Negate(q)
-		q.Add(p, q)
+		x1, y1 := feFromBytes(p.X.Bytes()), feFromBytes(p.Y.Bytes())
+		x2, y2 := f(u)
+		p256.Opp(y2, y2)
+		x3, y3 := p256Add(x1, y1, x2, y2)
 
 		// If we managed to randomly generate -p, congratulate ourselves on the improbable and keep
 		// trying.
-		b := q.BytesCompressed()
-		identity := true
-		for _, v := range b[1:] {
-			if v != 0 {
-				identity = false
-				break
-			}
-		}
-		if identity {
+		if feEqual(x3, &zero) && feEqual(y3, &zero) {
 			continue
 		}
 
 		// Pick a random biquadratic root from [0,4).
-		if _, err := io.ReadFull(rand, b[:1]); err != nil {
+		if _, err := io.ReadFull(rand, buf[:1]); err != nil {
 			panic(err)
 		}
-		j := b[0] % 4
+		j := buf[0] % 4
 
 		// If the Jth biquadratic root exists for the delta point, return our random field element
 		// and our preimage field element.
-		v := r(q, j)
+		v := r(x3, y3, j)
 		if v != nil {
 			copy(buf[:32], feToBytes(u))
 			copy(buf[32:], feToBytes(v))
@@ -112,18 +103,13 @@ func f(u *p256.MontgomeryDomainFieldElement) (x, y *p256.MontgomeryDomainFieldEl
 	x = x1(u)
 	y = feSqrt(g(x))
 	if y == nil {
-		panic("feSqrt(g(y)) returned nil")
+		panic("feSqrt(g(x)) returned nil")
 	}
 	p256.Opp(y, y)
 	return x, y
 }
 
-func r(q *nistec.P256Point, j byte) *p256.MontgomeryDomainFieldElement {
-	// Extract the x and y coordinates from the point.
-	buf := q.Bytes()
-	x := feFromBytes(buf[1:33])
-	y := feFromBytes(buf[33:])
-
+func r(x, y *p256.MontgomeryDomainFieldElement, j byte) *p256.MontgomeryDomainFieldElement {
 	// Inverting `f` requires two branches, one for X_0 and one for X_1, each of which has four
 	// roots. omega is constant across all of them.
 	omega := feInvert(&curveB)

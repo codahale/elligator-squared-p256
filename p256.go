@@ -5,16 +5,75 @@ import (
 	"encoding/hex"
 	"slices"
 
-	"filippo.io/nistec"
 	"github.com/mit-plv/fiat-crypto/fiat-go/64/p256"
 )
 
-func p256Affine(x, y *p256.MontgomeryDomainFieldElement) (*nistec.P256Point, error) {
-	var encoded [65]byte
-	encoded[0] = 4
-	copy(encoded[1:33], feToBytes(x))
-	copy(encoded[33:], feToBytes(y))
-	return nistec.NewP256Point().SetBytes(encoded[:])
+func p256Add(x1, y1, x2, y2 *p256.MontgomeryDomainFieldElement) (x3, y3 *p256.MontgomeryDomainFieldElement) {
+	// Complete addition formula for a = -3 from "Complete addition formulas for
+	// prime order elliptic curves" (https://eprint.iacr.org/2015/1060), §A.2.
+
+	var z1, z2, t0, t1, t2, t3, t4 p256.MontgomeryDomainFieldElement
+	x3 = new(p256.MontgomeryDomainFieldElement)
+	y3 = new(p256.MontgomeryDomainFieldElement)
+	z3 := new(p256.MontgomeryDomainFieldElement)
+
+	// Convert to projective.
+	if !feEqual(x1, &zero) || !feEqual(y1, &zero) {
+		p256.SetOne(&z1)
+	}
+	if !feEqual(x2, &zero) || !feEqual(y2, &zero) {
+		p256.SetOne(&z2)
+	}
+
+	p256.Mul(&t0, x1, x2)      // t0 := X1 * X2
+	p256.Mul(&t1, y1, y2)      // t1 := Y1 * Y2
+	p256.Mul(&t2, &z1, &z2)    // t2 := Z1 * Z2
+	p256.Add(&t3, x1, y1)      // t3 := X1 + Y1
+	p256.Add(&t4, x2, y2)      // t4 := X2 + Y2
+	p256.Mul(&t3, &t3, &t4)    // t3 := t3 * t4
+	p256.Add(&t4, &t0, &t1)    // t4 := t0 + t1
+	p256.Sub(&t3, &t3, &t4)    // t3 := t3 - t4
+	p256.Add(&t4, y1, &z1)     // t4 := Y1 + Z1
+	p256.Add(x3, y2, &z2)      // X3 := Y2 + Z2
+	p256.Mul(&t4, &t4, x3)     // t4 := t4 * X3
+	p256.Add(x3, &t1, &t2)     // X3 := t1 + t2
+	p256.Sub(&t4, &t4, x3)     // t4 := t4 - X3
+	p256.Add(x3, x1, &z1)      // X3 := X1 + Z1
+	p256.Add(y3, x2, &z2)      // Y3 := X2 + Z2
+	p256.Mul(x3, x3, y3)       // X3 := X3 * Y3
+	p256.Add(y3, &t0, &t2)     // Y3 := t0 + t2
+	p256.Sub(y3, x3, y3)       // Y3 := X3 - Y3
+	p256.Mul(z3, &curveB, &t2) // Z3 := b * t2
+	p256.Sub(x3, y3, z3)       // X3 := Y3 - Z3
+	p256.Add(z3, x3, x3)       // Z3 := X3 + X3
+	p256.Add(x3, x3, z3)       // X3 := X3 + Z3
+	p256.Sub(z3, &t1, x3)      // Z3 := t1 - X3
+	p256.Add(x3, &t1, x3)      // X3 := t1 + X3
+	p256.Mul(y3, &curveB, y3)  // Y3 := b * Y3
+	p256.Add(&t1, &t2, &t2)    // t1 := t2 + t2
+	p256.Add(&t2, &t1, &t2)    // t2 := t1 + t2
+	p256.Sub(y3, y3, &t2)      // Y3 := Y3 - t2
+	p256.Sub(y3, y3, &t0)      // Y3 := Y3 - t0
+	p256.Add(&t1, y3, y3)      // t1 := Y3 + Y3
+	p256.Add(y3, &t1, y3)      // Y3 := t1 + Y3
+	p256.Add(&t1, &t0, &t0)    // t1 := t0 + t0
+	p256.Add(&t0, &t1, &t0)    // t0 := t1 + t0
+	p256.Sub(&t0, &t0, &t2)    // t0 := t0 - t2
+	p256.Mul(&t1, &t4, y3)     // t1 := t4 * Y3
+	p256.Mul(&t2, &t0, y3)     // t2 := t0 * Y3
+	p256.Mul(y3, x3, z3)       // Y3 := X3 * Z3
+	p256.Add(y3, y3, &t2)      // Y3 := Y3 + t2
+	p256.Mul(x3, &t3, x3)      // X3 := t3 * X3
+	p256.Sub(x3, x3, &t1)      // X3 := X3 - t1
+	p256.Mul(z3, &t4, z3)      // Z3 := t4 * Z3
+	p256.Mul(&t1, &t3, &t0)    // t1 := t3 * t0
+	p256.Add(z3, z3, &t1)      // Z3 := Z3 + t1
+
+	z3Inv := feInvert(z3)
+	p256.Mul(x3, x3, z3Inv)
+	p256.Mul(y3, y3, z3Inv)
+
+	return x3, y3
 }
 
 func feFromBytes(b []byte) *p256.MontgomeryDomainFieldElement {
@@ -24,10 +83,10 @@ func feFromBytes(b []byte) *p256.MontgomeryDomainFieldElement {
 		bytes   [32]byte
 	)
 
-	if len(b) != 32 {
+	if len(b) > 32 {
 		panic("invalid field element length")
 	}
-	copy(bytes[:], b)
+	copy(bytes[32-len(b):], b) // pad with zeroes
 	slices.Reverse(bytes[:])
 	p256.FromBytes((*[4]uint64)(&nonMont), &bytes)
 	p256.ToMontgomery(&fe, &nonMont)

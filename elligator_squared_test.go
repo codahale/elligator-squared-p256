@@ -231,7 +231,7 @@ func TestX1(t *testing.T) {
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("x_1(%s)", test.x), func(t *testing.T) {
 			t.Parallel()
-			if got, want := x1(test.x), test.want; !got.Equal(got) {
+			if got, want := x1(test.x), test.want; !got.Equal(want) {
 				t.Errorf("x_1(%s) = %s, want = %s", test.x, got, want)
 			}
 		})
@@ -298,7 +298,7 @@ func TestF(t *testing.T) {
 		t.Run(fmt.Sprintf("f(%s)", test.u), func(t *testing.T) {
 			t.Parallel()
 			gotX, gotY := f(test.u)
-			if !gotX.Equal(test.x) || !gotY.Equal(gotY) {
+			if !gotX.Equal(test.x) || !gotY.Equal(test.y) {
 				t.Errorf("f(%s) = (%s, %s), want = (%s, %s)", test.u, gotX, gotY, test.x, test.y)
 			}
 		})

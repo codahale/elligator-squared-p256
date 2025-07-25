@@ -64,61 +64,8 @@ func (e *fieldElement) Equal(x *fieldElement) bool {
 }
 
 func (e *fieldElement) Sqrt(x *fieldElement) *fieldElement {
-	feSqrtCandidate := func(z, x *fieldElement) {
-		// Since p = 3 mod 4, exponentiation by (p + 1) / 4 yields a square root candidate.
-		//
-		// The sequence of 7 multiplications and 253 squarings is derived from the
-		// following addition chain generated with github.com/mmcloughlin/addchain v0.4.0.
-		//
-		//	_10       = 2*1
-		//	_11       = 1 + _10
-		//	_1100     = _11 << 2
-		//	_1111     = _11 + _1100
-		//	_11110000 = _1111 << 4
-		//	_11111111 = _1111 + _11110000
-		//	x16       = _11111111 << 8 + _11111111
-		//	x32       = x16 << 16 + x16
-		//	return      ((x32 << 32 + 1) << 96 + 1) << 94
-		//
-		var t0 fieldElement
-
-		z.Square(x)
-		z.Mul(x, z)
-		t0.Square(z)
-		for s := 1; s < 2; s++ {
-			t0.Square(&t0)
-		}
-		z.Mul(z, &t0)
-		t0.Square(z)
-		for s := 1; s < 4; s++ {
-			t0.Square(&t0)
-		}
-		z.Mul(z, &t0)
-		t0.Square(z)
-		for s := 1; s < 8; s++ {
-			t0.Square(&t0)
-		}
-		z.Mul(z, &t0)
-		t0.Square(z)
-		for s := 1; s < 16; s++ {
-			t0.Square(&t0)
-		}
-		z.Mul(z, &t0)
-		for s := 0; s < 32; s++ {
-			z.Square(z)
-		}
-		z.Mul(x, z)
-		for s := 0; s < 96; s++ {
-			z.Square(z)
-		}
-		z.Mul(x, z)
-		for s := 0; s < 94; s++ {
-			z.Square(z)
-		}
-	}
-
 	var candidate, square fieldElement
-	feSqrtCandidate(&candidate, x)
+	candidate.v.ModSqrt(&x.v, elliptic.P256().Params().P)
 	square.Square(&candidate)
 	if !square.Equal(x) {
 		return nil

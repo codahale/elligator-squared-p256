@@ -2,129 +2,56 @@ package elligator
 
 import (
 	"crypto/elliptic"
-	"crypto/subtle"
 	"encoding/hex"
-	"slices"
-
-	"github.com/mit-plv/fiat-crypto/fiat-go/64/p256"
+	"math/big"
 )
 
 type fieldElement struct {
-	v p256.MontgomeryDomainFieldElement
+	v big.Int
 }
 
 func (e *fieldElement) SetOne() *fieldElement {
-	p256.SetOne(&e.v)
+	e.v.SetInt64(1)
 	return e
 }
 
 func (e *fieldElement) Add(x, y *fieldElement) *fieldElement {
-	p256.Add(&e.v, &x.v, &y.v)
+	e.v.Add(&x.v, &y.v)
+	e.v.Mod(&e.v, elliptic.P256().Params().P)
 	return e
 }
 
 func (e *fieldElement) Sub(x, y *fieldElement) *fieldElement {
-	p256.Sub(&e.v, &x.v, &y.v)
+	e.v.Sub(&x.v, &y.v)
+	e.v.Mod(&e.v, elliptic.P256().Params().P)
 	return e
 }
 
 func (e *fieldElement) Mul(x, y *fieldElement) *fieldElement {
-	p256.Mul(&e.v, &x.v, &y.v)
+	e.v.Mul(&x.v, &y.v)
+	e.v.Mod(&e.v, elliptic.P256().Params().P)
 	return e
 }
 
 func (e *fieldElement) Square(x *fieldElement) *fieldElement {
-	p256.Square(&e.v, &x.v)
+	e.v.Exp(&x.v, &two.v, elliptic.P256().Params().P)
 	return e
 }
 
 func (e *fieldElement) Neg(x *fieldElement) *fieldElement {
-	p256.Opp(&e.v, &x.v)
+	e.v.Neg(&x.v)
+	e.v.Mod(&e.v, elliptic.P256().Params().P)
 	return e
 }
 
 func (e *fieldElement) Invert(x *fieldElement) *fieldElement {
-	// Inversion is implemented as exponentiation with exponent p − 2.
-	// The sequence of 12 multiplications and 255 squarings is derived from the
-	// following addition chain generated with github.com/mmcloughlin/addchain v0.4.0.
-	//
-	//	_10     = 2*1
-	//	_11     = 1 + _10
-	//	_110    = 2*_11
-	//	_111    = 1 + _110
-	//	_111000 = _111 << 3
-	//	_111111 = _111 + _111000
-	//	x12     = _111111 << 6 + _111111
-	//	x15     = x12 << 3 + _111
-	//	x16     = 2*x15 + 1
-	//	x32     = x16 << 16 + x16
-	//	i53     = x32 << 15
-	//	x47     = x15 + i53
-	//	i263    = ((i53 << 17 + 1) << 143 + x47) << 47
-	//	return    (x47 + i263) << 2 + 1
-	//
-	var (
-		y, t0, t1 fieldElement
-	)
-
-	y.Square(x)
-	y.Mul(x, &y)
-	y.Square(&y)
-	y.Mul(x, &y)
-	t0.Square(&y)
-	for s := 1; s < 3; s++ {
-		t0.Square(&t0)
-	}
-	t0.Mul(&y, &t0)
-	t1.Square(&t0)
-	for s := 1; s < 6; s++ {
-		t1.Square(&t1)
-	}
-	t0.Mul(&t0, &t1)
-	for s := 0; s < 3; s++ {
-		t0.Square(&t0)
-	}
-	y.Mul(&y, &t0)
-	t0.Square(&y)
-	t0.Mul(x, &t0)
-	t1.Square(&t0)
-	for s := 1; s < 16; s++ {
-		t1.Square(&t1)
-	}
-	t0.Mul(&t0, &t1)
-	for s := 0; s < 15; s++ {
-		t0.Square(&t0)
-	}
-	y.Mul(&y, &t0)
-	for s := 0; s < 17; s++ {
-		t0.Square(&t0)
-	}
-	t0.Mul(x, &t0)
-	for s := 0; s < 143; s++ {
-		t0.Square(&t0)
-	}
-	t0.Mul(&y, &t0)
-	for s := 0; s < 47; s++ {
-		t0.Square(&t0)
-	}
-	y.Mul(&y, &t0)
-	for s := 0; s < 2; s++ {
-		y.Square(&y)
-	}
-	y.Mul(x, &y)
-
-	*e = y
+	e.v.ModInverse(&x.v, elliptic.P256().Params().P)
 	return e
 }
 
 func (e *fieldElement) Bytes() []byte {
-	var (
-		nonMont p256.NonMontgomeryDomainFieldElement
-		bytes   [32]byte
-	)
-	p256.FromMontgomery(&nonMont, &e.v)
-	p256.ToBytes(&bytes, (*[4]uint64)(&nonMont))
-	slices.Reverse(bytes[:])
+	var bytes [32]byte
+	e.v.FillBytes(bytes[:])
 	return bytes[:]
 }
 
@@ -133,7 +60,7 @@ func (e *fieldElement) String() string {
 }
 
 func (e *fieldElement) Equal(x *fieldElement) bool {
-	return subtle.ConstantTimeCompare(e.Bytes(), x.Bytes()) == 1
+	return e.v.Cmp(&x.v) == 0
 }
 
 func (e *fieldElement) Sqrt(x *fieldElement) *fieldElement {
@@ -266,20 +193,9 @@ func p256Add(x1, y1, x2, y2 *fieldElement) (x3, y3 *fieldElement) {
 }
 
 func feFromBytes(b []byte) *fieldElement {
-	var (
-		fe      p256.MontgomeryDomainFieldElement
-		nonMont p256.NonMontgomeryDomainFieldElement
-		bytes   [32]byte
-	)
-
-	if len(b) > 32 {
-		panic("invalid field element length")
-	}
-	copy(bytes[32-len(b):], b) // pad with zeroes
-	slices.Reverse(bytes[:])
-	p256.FromBytes((*[4]uint64)(&nonMont), &bytes)
-	p256.ToMontgomery(&fe, &nonMont)
-	return &fieldElement{v: fe}
+	var f fieldElement
+	f.v.SetBytes(b)
+	return &f
 }
 
 func feFromHex(s string) *fieldElement {
@@ -295,10 +211,10 @@ var (
 )
 
 func init() {
-	one.SetOne()
-	two.Add(&one, &one)
-	four.Add(&two, &two)
-	curveA.Sub(&one, &four)
-	negOne.Neg(&one)
+	one.v.SetInt64(1)
+	two.v.SetInt64(2)
+	four.v.SetInt64(4)
+	negOne.v.SetInt64(-1)
+	curveA.v.SetInt64(-3)
 	curveB = *feFromBytes(elliptic.P256().Params().B.Bytes())
 }

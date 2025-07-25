@@ -10,11 +10,6 @@ type fieldElement struct {
 	v big.Int
 }
 
-func (e *fieldElement) SetOne() *fieldElement {
-	e.v.SetInt64(1)
-	return e
-}
-
 func (e *fieldElement) Add(x, y *fieldElement) *fieldElement {
 	e.v.Add(&x.v, &y.v)
 	e.v.Mod(&e.v, elliptic.P256().Params().P)
@@ -82,10 +77,10 @@ func p256Add(x1, y1, x2, y2 *fieldElement) (x3, y3 *fieldElement) {
 
 	// Convert to projective.
 	if !x1.Equal(&zero) || !y1.Equal(&zero) {
-		z1.SetOne()
+		z1.v.SetInt64(1)
 	}
 	if !x2.Equal(&zero) || !y2.Equal(&zero) {
-		z2.SetOne()
+		z2.v.SetInt64(1)
 	}
 
 	t0 := new(fieldElement).Mul(x1, x2)      // t0 := X1 * X2

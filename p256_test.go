@@ -3,15 +3,13 @@ package elligator
 import (
 	"fmt"
 	"testing"
-
-	"github.com/mit-plv/fiat-crypto/fiat-go/64/p256"
 )
 
 func TestFeInvert(t *testing.T) {
 	t.Parallel()
 
 	var tests = []struct {
-		x, want *p256.MontgomeryDomainFieldElement
+		x, want *fieldElement
 	}{
 		{
 			x:    feFromHex("1fdabb681a533e5c40a2bd8a41cce53e00dac69911cbcb15c015998a56e17470"),
@@ -55,11 +53,11 @@ func TestFeInvert(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("feInvert(%x)", feToBytes(test.x)), func(t *testing.T) {
+		t.Run(fmt.Sprintf("feInvert(%s)", test.x), func(t *testing.T) {
 			t.Parallel()
 
-			if got, want := feInvert(test.x), test.want; !feEqual(got, want) {
-				t.Errorf("feInvert(%x) = %x, want = %x", feToBytes(test.x), feToBytes(got), feToBytes(want))
+			if got, want := new(fieldElement).Invert(test.x), test.want; !got.Equal(want) {
+				t.Errorf("feInvert(%s) = %s, want = %s", test.x, got, want)
 			}
 		})
 	}
@@ -69,7 +67,7 @@ func TestFeSqrt(t *testing.T) {
 	t.Parallel()
 
 	var tests = []struct {
-		x, want *p256.MontgomeryDomainFieldElement
+		x, want *fieldElement
 	}{
 		{
 			x:    feFromHex("743a004100e76a1de51b190d316eda1dbb6d2b9bb1082aca0034a168f8fc9461"),
@@ -113,16 +111,16 @@ func TestFeSqrt(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("feSqrt(%x)", feToBytes(test.x)), func(t *testing.T) {
+		t.Run(fmt.Sprintf("feSqrt(%s)", test.x), func(t *testing.T) {
 			t.Parallel()
 
-			got, want := feSqrt(test.x), test.want
+			got, want := new(fieldElement).Sqrt(test.x), test.want
 			if got != nil && want == nil {
-				t.Errorf("feSqrt(%x) = %x, want nil", feToBytes(test.x), feToBytes(got))
+				t.Errorf("feSqrt(%s) = %s, want nil", test.x, got)
 			} else if got == nil && want != nil {
-				t.Errorf("feSqrt(%x) = nil, want %x", feToBytes(test.x), feToBytes(want))
-			} else if got != nil && want != nil && !feEqual(got, want) {
-				t.Errorf("feSqrt(%x) = %x, want = %x", feToBytes(test.x), feToBytes(got), feToBytes(want))
+				t.Errorf("feSqrt(%s) = nil, want %s", test.x, want)
+			} else if got != nil && want != nil && !got.Equal(want) {
+				t.Errorf("feSqrt(%s) = %s, want = %s", test.x, got, want)
 			}
 		})
 	}

@@ -3,8 +3,6 @@ package elligator
 import (
 	"errors"
 	"io"
-
-	"github.com/mit-plv/fiat-crypto/fiat-go/64/p256"
 )
 
 var (
@@ -27,8 +25,8 @@ func Decode(b []byte) ([]byte, error) {
 
 	var out [65]byte
 	out[0] = 4
-	copy(out[1:33], feToBytes(x3))
-	copy(out[33:], feToBytes(y3))
+	copy(out[1:33], x3.Bytes())
+	copy(out[33:], y3.Bytes())
 	return out[:], nil
 }
 
@@ -45,7 +43,8 @@ func Encode(p []byte, rand io.Reader) ([]byte, error) {
 			return nil, err
 		}
 		u := feFromBytes(buf[:32])
-		if feEqual(u, &negOne) || feEqual(u, &zero) || feEqual(u, &one) {
+
+		if u.Equal(&negOne) || u.Equal(&zero) || u.Equal(&one) {
 			continue
 		}
 
@@ -53,12 +52,12 @@ func Encode(p []byte, rand io.Reader) ([]byte, error) {
 		// and the input point.
 		x1, y1 := feFromBytes(p[1:33]), feFromBytes(p[33:])
 		x2, y2 := f(u)
-		p256.Opp(y2, y2)
+		y2.Neg(y2)
 		x3, y3 := p256Add(x1, y1, x2, y2)
 
 		// If we managed to randomly generate -p, congratulate ourselves on the improbable and keep
 		// trying.
-		if feEqual(x3, &zero) && feEqual(y3, &zero) {
+		if x3.Equal(&zero) && y3.Equal(&zero) {
 			continue
 		}
 
@@ -72,8 +71,8 @@ func Encode(p []byte, rand io.Reader) ([]byte, error) {
 		// and our preimage field element.
 		v := r(x3, y3, j)
 		if v != nil {
-			copy(buf[:32], feToBytes(u))
-			copy(buf[32:], feToBytes(v))
+			copy(buf[:32], u.Bytes())
+			copy(buf[32:], v.Bytes())
 			return buf[:], nil
 		}
 	}
@@ -81,17 +80,17 @@ func Encode(p []byte, rand io.Reader) ([]byte, error) {
 	panic("elliqator: failed to find candidate, suspect RNG failure")
 }
 
-func f(u *p256.MontgomeryDomainFieldElement) (x, y *p256.MontgomeryDomainFieldElement) {
+func f(u *fieldElement) (x, y *fieldElement) {
 	// Case 1: u \in {-1, 0, 1}
 	// return: infinity
-	if feEqual(u, &one) || feEqual(u, &zero) || feEqual(u, &negOne) {
+	if u.Equal(&one) || u.Equal(&zero) || u.Equal(&negOne) {
 		return &zero, &zero
 	}
 
 	// Case 2: u \not\in {-1, 0, 1} and g(X_0(u)) is a square
 	// return: (X_0(u), \sqrt{g(X_0(u))})
 	x = x0(u)
-	y = feSqrt(g(x))
+	y = new(fieldElement).Sqrt(g(x))
 	if y != nil {
 		return x, y
 	}
@@ -99,28 +98,28 @@ func f(u *p256.MontgomeryDomainFieldElement) (x, y *p256.MontgomeryDomainFieldEl
 	// Case 3: u \not\in {-1, 0, 1} and g(X_0(u)) is not a square
 	// return: (X_1(u), -\sqrt{g(X_1(u))})
 	x = x1(u)
-	y = feSqrt(g(x))
+	y = new(fieldElement).Sqrt(g(x))
 	if y == nil {
 		panic("feSqrt(g(x)) returned nil")
 	}
-	p256.Opp(y, y)
+	y.Neg(y)
 	return x, y
 }
 
-func r(x, y *p256.MontgomeryDomainFieldElement, j byte) *p256.MontgomeryDomainFieldElement {
+func r(x, y *fieldElement, j byte) *fieldElement {
 	// Inverting `f` requires two branches, one for X_0 and one for X_1, each of which has four
 	// roots. omega is constant across all of them.
-	omega := feInvert(&curveB)
-	p256.Mul(omega, &curveA, omega)
-	p256.Mul(omega, omega, x)
-	p256.Add(omega, omega, &one)
+	omega := new(fieldElement).Invert(&curveB)
+	omega.Mul(&curveA, omega)
+	omega.Mul(omega, x)
+	omega.Add(omega, &one)
 
-	var omega2Sub4Omega, omega2, fourOmega p256.MontgomeryDomainFieldElement
-	p256.Square(&omega2, omega)
-	p256.Mul(&fourOmega, omega, &four)
-	p256.Sub(&omega2Sub4Omega, &omega2, &fourOmega)
+	var omega2Sub4Omega, omega2, fourOmega fieldElement
+	omega2.Square(omega)
+	fourOmega.Mul(omega, &four)
+	omega2Sub4Omega.Sub(&omega2, &fourOmega)
 
-	a := feSqrt(&omega2Sub4Omega)
+	a := new(fieldElement).Sqrt(&omega2Sub4Omega)
 	if a == nil {
 		return nil
 	}
@@ -128,24 +127,24 @@ func r(x, y *p256.MontgomeryDomainFieldElement, j byte) *p256.MontgomeryDomainFi
 	// The first division in roots comes at \sqrt{\omega^2 - 4 \omega}. The first and second
 	// roots have positive values, the third and fourth roots have negative values.
 	if j == 2 || j == 3 {
-		p256.Opp(a, a)
+		a.Neg(a)
 	}
 
 	// If g(x) is square, then, x=X_0(u); otherwise x=X_1(u).
-	var b = new(p256.MontgomeryDomainFieldElement)
-	if feSqrt(y) != nil {
+	var b = new(fieldElement)
+	if new(fieldElement).Sqrt(y) != nil {
 		// If x=X_0(u), then we divide by 2 \omega.
-		p256.Mul(b, &two, omega)
-		b = feInvert(b)
+		b.Mul(&two, omega)
+		b.Invert(b)
 	} else {
 		// If x=X_1(u), then we divide by 2.
-		b = feInvert(&two)
+		b.Invert(&two)
 	}
 
-	c := new(p256.MontgomeryDomainFieldElement)
-	p256.Add(c, omega, a)
-	p256.Mul(c, c, b)
-	c = feSqrt(c)
+	c := new(fieldElement)
+	c.Add(omega, a)
+	c.Mul(c, b)
+	c = new(fieldElement).Sqrt(c)
 	if c == nil {
 		return nil
 	}
@@ -153,51 +152,51 @@ func r(x, y *p256.MontgomeryDomainFieldElement, j byte) *p256.MontgomeryDomainFi
 	// The second division in roots comes here. The first and third roots have positive
 	// values, the second and fourth roots have negative values.
 	if j == 1 || j == 3 {
-		p256.Opp(c, c)
+		c.Neg(c)
 	}
 
 	return c
 }
 
-func g(x *p256.MontgomeryDomainFieldElement) *p256.MontgomeryDomainFieldElement {
+func g(x *fieldElement) *fieldElement {
 	// x^3
-	var y p256.MontgomeryDomainFieldElement
-	p256.Square(&y, x)
-	p256.Mul(&y, &y, x)
+	var y fieldElement
+	y.Square(x)
+	y.Mul(&y, x)
 
 	// -3x
-	p256.Sub(&y, &y, x)
-	p256.Sub(&y, &y, x)
-	p256.Sub(&y, &y, x)
+	y.Sub(&y, x)
+	y.Sub(&y, x)
+	y.Sub(&y, x)
 
 	// B
-	p256.Add(&y, &y, &curveB)
+	y.Add(&y, &curveB)
 
 	return &y
 }
 
-func x0(u *p256.MontgomeryDomainFieldElement) *p256.MontgomeryDomainFieldElement {
-	negBdivA := feInvert(&curveA)
-	p256.Mul(negBdivA, &curveB, negBdivA)
-	p256.Opp(negBdivA, negBdivA)
+func x0(u *fieldElement) *fieldElement {
+	negBdivA := new(fieldElement).Invert(&curveA)
+	negBdivA.Mul(&curveB, negBdivA)
+	negBdivA.Neg(negBdivA)
 
 	var (
-		u2, u4, u4SubU2, y p256.MontgomeryDomainFieldElement
+		u2, u4, u4SubU2, y fieldElement
 	)
-	p256.Square(&u2, u)
-	p256.Square(&u4, &u2)
-	p256.Sub(&u4SubU2, &u4, &u2)
-	i := feInvert(&u4SubU2)
-	p256.Add(i, i, &one)
+	u2.Square(u)
+	u4.Square(&u2)
+	u4SubU2.Sub(&u4, &u2)
+	i := new(fieldElement).Invert(&u4SubU2)
+	i.Add(i, &one)
 
-	p256.Mul(&y, negBdivA, i)
+	y.Mul(negBdivA, i)
 	return &y
 }
 
-func x1(u *p256.MontgomeryDomainFieldElement) *p256.MontgomeryDomainFieldElement {
-	var y p256.MontgomeryDomainFieldElement
-	p256.Square(&y, u)
-	p256.Opp(&y, &y)
-	p256.Mul(&y, &y, x0(u))
+func x1(u *fieldElement) *fieldElement {
+	var y fieldElement
+	y.Square(u)
+	y.Neg(&y)
+	y.Mul(&y, x0(u))
 	return &y
 }

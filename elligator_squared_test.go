@@ -8,8 +8,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"testing"
-
-	"github.com/mit-plv/fiat-crypto/fiat-go/64/p256"
 )
 
 func Example() {
@@ -94,7 +92,7 @@ func TestG(t *testing.T) {
 	t.Parallel()
 
 	var tests = []struct {
-		x, want *p256.MontgomeryDomainFieldElement
+		x, want *fieldElement
 	}{
 		{
 			x:    &one,
@@ -118,10 +116,10 @@ func TestG(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("g(%x)", feToBytes(test.x)), func(t *testing.T) {
+		t.Run(fmt.Sprintf("g(%s)", test.x), func(t *testing.T) {
 			t.Parallel()
-			if got, want := g(test.x), test.want; !feEqual(got, want) {
-				t.Errorf("g(%x) = %x, want = %x", feToBytes(test.x), feToBytes(got), feToBytes(want))
+			if got, want := g(test.x), test.want; !got.Equal(want) {
+				t.Errorf("g(%s) = %s, want = %s", test.x, got, want)
 			}
 		})
 	}
@@ -131,7 +129,7 @@ func TestX0(t *testing.T) {
 	t.Parallel()
 
 	var tests = []struct {
-		x, want *p256.MontgomeryDomainFieldElement
+		x, want *fieldElement
 	}{
 		{
 			x:    feFromHex("cb2943cf0b5476a59d206e7fe380e8b135a02db4733db3d158fd55636ccf899b"),
@@ -175,10 +173,10 @@ func TestX0(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("x_0(%x)", feToBytes(test.x)), func(t *testing.T) {
+		t.Run(fmt.Sprintf("x_0(%s)", test.x), func(t *testing.T) {
 			t.Parallel()
-			if got, want := x0(test.x), test.want; !feEqual(got, want) {
-				t.Errorf("x_0(%x) = %x, want = %x", feToBytes(test.x), feToBytes(got), feToBytes(want))
+			if got, want := x0(test.x), test.want; !got.Equal(want) {
+				t.Errorf("x_0(%s) = %s, want = %s", test.x, got, want)
 			}
 		})
 	}
@@ -187,7 +185,7 @@ func TestX0(t *testing.T) {
 func TestX1(t *testing.T) {
 	t.Parallel()
 	var tests = []struct {
-		x, want *p256.MontgomeryDomainFieldElement
+		x, want *fieldElement
 	}{
 		{
 			x:    feFromHex("bdd250da6bd46362873bbb7479263c3fdf3007f09b23646bb523b36250de95a2"),
@@ -231,10 +229,10 @@ func TestX1(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("x_1(%x)", feToBytes(test.x)), func(t *testing.T) {
+		t.Run(fmt.Sprintf("x_1(%s)", test.x), func(t *testing.T) {
 			t.Parallel()
-			if got, want := x1(test.x), test.want; !feEqual(got, want) {
-				t.Errorf("x_1(%x) = %x, want = %x", feToBytes(test.x), feToBytes(got), feToBytes(want))
+			if got, want := x1(test.x), test.want; !got.Equal(got) {
+				t.Errorf("x_1(%s) = %s, want = %s", test.x, got, want)
 			}
 		})
 	}
@@ -243,7 +241,7 @@ func TestX1(t *testing.T) {
 func TestF(t *testing.T) {
 	t.Parallel()
 	var tests = []struct {
-		u, x, y *p256.MontgomeryDomainFieldElement
+		u, x, y *fieldElement
 	}{
 		{
 			u: feFromHex("87789ed27e8a8078b283bc0f755af77e74a47755d25a6afb10be866b89297696"),
@@ -297,11 +295,11 @@ func TestF(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("f(%x)", feToBytes(test.u)), func(t *testing.T) {
+		t.Run(fmt.Sprintf("f(%s)", test.u), func(t *testing.T) {
 			t.Parallel()
 			gotX, gotY := f(test.u)
-			if !feEqual(gotX, test.x) || !feEqual(gotY, test.y) {
-				t.Errorf("f(%x) = (%x, %x), want = (%x, %x)", feToBytes(test.u), feToBytes(gotX), feToBytes(gotY), feToBytes(test.x), feToBytes(test.y))
+			if !gotX.Equal(test.x) || !gotY.Equal(gotY) {
+				t.Errorf("f(%s) = (%s, %s), want = (%s, %s)", test.u, gotX, gotY, test.x, test.y)
 			}
 		})
 	}

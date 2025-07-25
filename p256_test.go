@@ -115,11 +115,12 @@ func TestFeSqrt(t *testing.T) {
 			t.Parallel()
 
 			got, want := new(fieldElement).Sqrt(test.x), test.want
-			if got != nil && want == nil {
+			switch {
+			case got != nil && want == nil:
 				t.Errorf("feSqrt(%s) = %s, want nil", test.x, got)
-			} else if got == nil && want != nil {
+			case got == nil && want != nil:
 				t.Errorf("feSqrt(%s) = nil, want %s", test.x, want)
-			} else if got != nil && want != nil && !got.Equal(want) {
+			case got != nil && want != nil && !got.Equal(want):
 				t.Errorf("feSqrt(%s) = %s, want = %s", test.x, got, want)
 			}
 		})

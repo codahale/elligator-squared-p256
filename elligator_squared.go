@@ -37,7 +37,7 @@ func Encode(p []byte, rand io.Reader) ([]byte, error) {
 	}
 
 	var buf [64]byte
-	for i := 0; i < 1_000; i++ {
+	for range 1_000 {
 		// Generate a random field element \not\in {-1, 0, 1}.
 		if _, err := io.ReadFull(rand, buf[:32]); err != nil {
 			return nil, err

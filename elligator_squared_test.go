@@ -66,7 +66,7 @@ func BenchmarkDecode(b *testing.B) {
 
 func TestRoundTrip(t *testing.T) {
 	t.Parallel()
-	for i := 0; i < 1_000; i++ {
+	for range 1_000 {
 		k, err := ecdh.P256().GenerateKey(rand.Reader)
 		if err != nil {
 			t.Fatal(err)

@@ -18,6 +18,7 @@ func Decode(b []byte) ([]byte, error) {
 		return nil, ErrInvalidEncoding
 	}
 
+	// p = f(u) + f(v)
 	u, v := feFromBytes(b[:32]), feFromBytes(b[32:])
 	x1, y1 := f(u)
 	x2, y2 := f(v)
@@ -49,7 +50,7 @@ func Encode(p []byte, rand io.Reader) ([]byte, error) {
 		}
 
 		// Map the field element to a point and calculate the difference between the random point
-		// and the input point.
+		// and the input point: q = p - f(u).
 		x1, y1 := feFromBytes(p[1:33]), feFromBytes(p[33:])
 		x2, y2 := f(u)
 		y2.Neg(y2)
@@ -68,7 +69,7 @@ func Encode(p []byte, rand io.Reader) ([]byte, error) {
 		j := buf[0] % 4
 
 		// If the Jth biquadratic root exists for the delta point, return our random field element
-		// and our preimage field element.
+		// and our preimage field element: f(v) = q.
 		v := r(x3, y3, j)
 		if v != nil {
 			copy(buf[:32], u.Bytes())
@@ -115,7 +116,7 @@ func r(x, y *fieldElement, j byte) *fieldElement {
 	omega.Add(omega, &one)
 
 	var omega2Sub4Omega, omega2, fourOmega fieldElement
-	omega2.Square(omega)
+	omega2.Exp(omega, 2)
 	fourOmega.Mul(omega, &four)
 	omega2Sub4Omega.Sub(&omega2, &fourOmega)
 
@@ -141,11 +142,9 @@ func r(x, y *fieldElement, j byte) *fieldElement {
 		b.Invert(&two)
 	}
 
-	c := new(fieldElement)
-	c.Add(omega, a)
+	c := new(fieldElement).Add(omega, a)
 	c.Mul(c, b)
-	c = new(fieldElement).Sqrt(c)
-	if c == nil {
+	if c.Sqrt(c) == nil {
 		return nil
 	}
 
@@ -161,8 +160,7 @@ func r(x, y *fieldElement, j byte) *fieldElement {
 func g(x *fieldElement) *fieldElement {
 	// x^3
 	var y fieldElement
-	y.Square(x)
-	y.Mul(&y, x)
+	y.Exp(x, 3)
 
 	// -3x
 	y.Sub(&y, x)
@@ -176,26 +174,27 @@ func g(x *fieldElement) *fieldElement {
 }
 
 func x0(u *fieldElement) *fieldElement {
-	negBdivA := new(fieldElement).Invert(&curveA)
-	negBdivA.Mul(&curveB, negBdivA)
-	negBdivA.Neg(negBdivA)
-
 	var (
-		u2, u4, u4SubU2, y fieldElement
+		u2, a, b fieldElement
 	)
-	u2.Square(u)
-	u4.Square(&u2)
-	u4SubU2.Sub(&u4, &u2)
-	i := new(fieldElement).Invert(&u4SubU2)
-	i.Add(i, &one)
 
-	y.Mul(negBdivA, i)
-	return &y
+	u2.Exp(u, 2)
+	b.Exp(&u2, 2)
+	b.Sub(&b, &u2)
+	b.Invert(&b)
+	b.Add(&b, &one)
+
+	a.Invert(&curveA)
+	a.Mul(&curveB, &a)
+	a.Neg(&a)
+	b.Mul(&a, &b)
+
+	return &b
 }
 
 func x1(u *fieldElement) *fieldElement {
 	var y fieldElement
-	y.Square(u)
+	y.Exp(u, 2)
 	y.Neg(&y)
 	y.Mul(&y, x0(u))
 	return &y

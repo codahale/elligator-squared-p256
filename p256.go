@@ -6,68 +6,6 @@ import (
 	"math/big"
 )
 
-type fieldElement struct {
-	v big.Int
-}
-
-func (e *fieldElement) Add(x, y *fieldElement) *fieldElement {
-	e.v.Add(&x.v, &y.v)
-	e.v.Mod(&e.v, elliptic.P256().Params().P)
-	return e
-}
-
-func (e *fieldElement) Sub(x, y *fieldElement) *fieldElement {
-	e.v.Sub(&x.v, &y.v)
-	e.v.Mod(&e.v, elliptic.P256().Params().P)
-	return e
-}
-
-func (e *fieldElement) Mul(x, y *fieldElement) *fieldElement {
-	e.v.Mul(&x.v, &y.v)
-	e.v.Mod(&e.v, elliptic.P256().Params().P)
-	return e
-}
-
-func (e *fieldElement) Square(x *fieldElement) *fieldElement {
-	e.v.Exp(&x.v, &two.v, elliptic.P256().Params().P)
-	return e
-}
-
-func (e *fieldElement) Neg(x *fieldElement) *fieldElement {
-	e.v.Neg(&x.v)
-	e.v.Mod(&e.v, elliptic.P256().Params().P)
-	return e
-}
-
-func (e *fieldElement) Invert(x *fieldElement) *fieldElement {
-	e.v.ModInverse(&x.v, elliptic.P256().Params().P)
-	return e
-}
-
-func (e *fieldElement) Bytes() []byte {
-	var bytes [32]byte
-	e.v.FillBytes(bytes[:])
-	return bytes[:]
-}
-
-func (e *fieldElement) String() string {
-	return hex.EncodeToString(e.Bytes())
-}
-
-func (e *fieldElement) Equal(x *fieldElement) bool {
-	return e.v.Cmp(&x.v) == 0
-}
-
-func (e *fieldElement) Sqrt(x *fieldElement) *fieldElement {
-	var candidate, square fieldElement
-	candidate.v.ModSqrt(&x.v, elliptic.P256().Params().P)
-	square.Square(&candidate)
-	if !square.Equal(x) {
-		return nil
-	}
-	return &candidate
-}
-
 func p256Add(x1, y1, x2, y2 *fieldElement) (x3, y3 *fieldElement) {
 	// Complete addition formula for a = -3 from "Complete addition formulas for
 	// prime order elliptic curves" (https://eprint.iacr.org/2015/1060), §A.2.
@@ -134,6 +72,10 @@ func p256Add(x1, y1, x2, y2 *fieldElement) (x3, y3 *fieldElement) {
 	return x3, y3
 }
 
+type fieldElement struct {
+	v big.Int
+}
+
 func feFromBytes(b []byte) *fieldElement {
 	var f fieldElement
 	f.v.SetBytes(b)
@@ -146,6 +88,60 @@ func feFromHex(s string) *fieldElement {
 		panic(err)
 	}
 	return feFromBytes(b)
+}
+
+func (e *fieldElement) Add(x, y *fieldElement) *fieldElement {
+	e.v.Add(&x.v, &y.v).Mod(&e.v, elliptic.P256().Params().P)
+	return e
+}
+
+func (e *fieldElement) Sub(x, y *fieldElement) *fieldElement {
+	e.v.Sub(&x.v, &y.v).Mod(&e.v, elliptic.P256().Params().P)
+	return e
+}
+
+func (e *fieldElement) Mul(x, y *fieldElement) *fieldElement {
+	e.v.Mul(&x.v, &y.v).Mod(&e.v, elliptic.P256().Params().P)
+	return e
+}
+
+func (e *fieldElement) Exp(x *fieldElement, y int64) *fieldElement {
+	e.v.Exp(&x.v, big.NewInt(y), elliptic.P256().Params().P)
+	return e
+}
+
+func (e *fieldElement) Neg(x *fieldElement) *fieldElement {
+	e.v.Neg(&x.v).Mod(&e.v, elliptic.P256().Params().P)
+	return e
+}
+
+func (e *fieldElement) Invert(x *fieldElement) *fieldElement {
+	e.v.ModInverse(&x.v, elliptic.P256().Params().P)
+	return e
+}
+
+func (e *fieldElement) Bytes() []byte {
+	var bytes [32]byte
+	e.v.FillBytes(bytes[:])
+	return bytes[:]
+}
+
+func (e *fieldElement) String() string {
+	return hex.EncodeToString(e.Bytes())
+}
+
+func (e *fieldElement) Equal(x *fieldElement) bool {
+	return e.v.Cmp(&x.v) == 0
+}
+
+func (e *fieldElement) Sqrt(x *fieldElement) *fieldElement {
+	var candidate fieldElement
+	candidate.v.ModSqrt(&x.v, elliptic.P256().Params().P)
+	if !new(fieldElement).Exp(&candidate, 2).Equal(x) {
+		return nil
+	}
+	*e = candidate
+	return e
 }
 
 var (

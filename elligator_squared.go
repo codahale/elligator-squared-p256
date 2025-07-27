@@ -19,7 +19,7 @@ func Decode(b []byte) ([]byte, error) {
 	}
 
 	// p = f(u) + f(v)
-	u, v := feFromBytes(b[:32]), feFromBytes(b[32:])
+	u, v := new(fieldElement).SetBytes(b[:32]), new(fieldElement).SetBytes(b[32:])
 	x1, y1 := f(u)
 	x2, y2 := f(v)
 	x3, y3 := p256Add(x1, y1, x2, y2)
@@ -33,6 +33,8 @@ func Decode(b []byte) ([]byte, error) {
 
 // Encode maps the given uncompressed SEC-encoded point to a random 64-byte bitstring.
 func Encode(p []byte, rand io.Reader) ([]byte, error) {
+	zero := new(fieldElement)
+
 	if len(p) != 65 || p[0] != 4 {
 		return nil, ErrInvalidPoint
 	}
@@ -43,22 +45,21 @@ func Encode(p []byte, rand io.Reader) ([]byte, error) {
 		if _, err := io.ReadFull(rand, buf[:32]); err != nil {
 			return nil, err
 		}
-		u := feFromBytes(buf[:32])
-
-		if u.Equal(&negOne) || u.Equal(&zero) || u.Equal(&one) {
+		u := new(fieldElement).SetBytes(buf[:32])
+		if u.CmpAbs(new(fieldElement).SetInt64(1)) == 0 || u.CmpAbs(zero) == 0 {
 			continue
 		}
 
 		// Map the field element to a point and calculate the difference between the random point
 		// and the input point: q = p - f(u).
-		x1, y1 := feFromBytes(p[1:33]), feFromBytes(p[33:])
+		x1, y1 := new(fieldElement).SetBytes(p[1:33]), new(fieldElement).SetBytes(p[33:])
 		x2, y2 := f(u)
 		y2.Neg(y2)
 		x3, y3 := p256Add(x1, y1, x2, y2)
 
 		// If we managed to randomly generate -p, congratulate ourselves on the improbable and keep
 		// trying.
-		if x3.Equal(&zero) && y3.Equal(&zero) {
+		if x3.Cmp(zero) == 0 && y3.Cmp(zero) == 0 {
 			continue
 		}
 
@@ -84,8 +85,9 @@ func Encode(p []byte, rand io.Reader) ([]byte, error) {
 func f(u *fieldElement) (x, y *fieldElement) {
 	// Case 1: u \in {-1, 0, 1}
 	// return: infinity
-	if u.Equal(&one) || u.Equal(&zero) || u.Equal(&negOne) {
-		return &zero, &zero
+	zero := new(fieldElement)
+	if u.CmpAbs(new(fieldElement).SetInt64(1)) == 0 || u.Cmp(zero) == 0 {
+		return zero, zero
 	}
 
 	// Case 2: u \not\in {-1, 0, 1} and g(X_0(u)) is a square
@@ -110,17 +112,17 @@ func f(u *fieldElement) (x, y *fieldElement) {
 func r(x, y *fieldElement, j byte) *fieldElement {
 	// Inverting `f` requires two branches, one for X_0 and one for X_1, each of which has four
 	// roots. omega is constant across all of them.
-	omega := new(fieldElement).Invert(&curveB)
-	omega.Mul(&curveA, omega)
+	omega := new(fieldElement).SetB()
+	omega.Invert(omega)
+	omega.Mul(omega, new(fieldElement).SetA())
 	omega.Mul(omega, x)
-	omega.Add(omega, &one)
+	omega.Add(omega, new(fieldElement).SetInt64(1))
 
-	var omega2Sub4Omega, omega2, fourOmega fieldElement
-	omega2.Exp(omega, 2)
-	fourOmega.Mul(omega, &four)
-	omega2Sub4Omega.Sub(&omega2, &fourOmega)
+	omega2 := new(fieldElement).Exp(omega, 2)
+	fourOmega := new(fieldElement).Mul(omega, new(fieldElement).SetInt64(4))
+	omega2Sub4Omega := new(fieldElement).Sub(omega2, fourOmega)
 
-	a := new(fieldElement).Sqrt(&omega2Sub4Omega)
+	a := new(fieldElement).Sqrt(omega2Sub4Omega)
 	if a == nil {
 		return nil
 	}
@@ -135,11 +137,11 @@ func r(x, y *fieldElement, j byte) *fieldElement {
 	var b = new(fieldElement)
 	if new(fieldElement).Sqrt(y) != nil {
 		// If x=X_0(u), then we divide by 2 \omega.
-		b.Mul(&two, omega)
+		b.Mul(new(fieldElement).SetInt64(2), omega)
 		b.Invert(b)
 	} else {
 		// If x=X_1(u), then we divide by 2.
-		b.Invert(&two)
+		b.Invert(new(fieldElement).SetInt64(2))
 	}
 
 	c := new(fieldElement).Add(omega, a)
@@ -159,43 +161,38 @@ func r(x, y *fieldElement, j byte) *fieldElement {
 
 func g(x *fieldElement) *fieldElement {
 	// x^3
-	var y fieldElement
-	y.Exp(x, 3)
+	y := new(fieldElement).Exp(x, 3)
 
 	// -3x
-	y.Sub(&y, x)
-	y.Sub(&y, x)
-	y.Sub(&y, x)
+	y.Sub(y, x)
+	y.Sub(y, x)
+	y.Sub(y, x)
 
 	// B
-	y.Add(&y, &curveB)
+	y.Add(y, new(fieldElement).SetB())
 
-	return &y
+	return y
 }
 
 func x0(u *fieldElement) *fieldElement {
-	var (
-		u2, a, b fieldElement
-	)
+	u2 := new(fieldElement).Exp(u, 2)
+	b := new(fieldElement).Exp(u2, 2)
+	b.Sub(b, u2)
+	b.Invert(b)
+	b.Add(b, new(fieldElement).SetInt64(1))
 
-	u2.Exp(u, 2)
-	b.Exp(&u2, 2)
-	b.Sub(&b, &u2)
-	b.Invert(&b)
-	b.Add(&b, &one)
+	a := new(fieldElement).SetA()
+	a.Invert(a)
+	a.Mul(a, new(fieldElement).SetB())
+	a.Neg(a)
+	b.Mul(a, b)
 
-	a.Invert(&curveA)
-	a.Mul(&curveB, &a)
-	a.Neg(&a)
-	b.Mul(&a, &b)
-
-	return &b
+	return b
 }
 
 func x1(u *fieldElement) *fieldElement {
-	var y fieldElement
-	y.Exp(u, 2)
-	y.Neg(&y)
-	y.Mul(&y, x0(u))
-	return &y
+	y := new(fieldElement).Exp(u, 2)
+	y.Neg(y)
+	y.Mul(y, x0(u))
+	return y
 }

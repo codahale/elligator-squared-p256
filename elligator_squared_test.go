@@ -95,30 +95,30 @@ func TestG(t *testing.T) {
 		x, want *fieldElement
 	}{
 		{
-			x:    &one,
-			want: feFromHex("5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d26049"),
+			x:    new(fieldElement).SetInt64(1),
+			want: new(fieldElement).SetString("5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d26049"),
 		},
 		{
-			x:    &two,
-			want: feFromHex("5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604d"),
+			x:    new(fieldElement).SetInt64(2),
+			want: new(fieldElement).SetString("5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604d"),
 		},
 		{
-			x:    feFromHex("4077f2bde92bfa027151a7412d6e92ba0c035eb58dc8c86b4f659536c36b47d5"),
-			want: feFromHex("2819ec852c134ff7a481d7adbc3f1a085bc9f6b250a5917a822703f191f3ea4d"),
+			x:    new(fieldElement).SetString("4077f2bde92bfa027151a7412d6e92ba0c035eb58dc8c86b4f659536c36b47d5"),
+			want: new(fieldElement).SetString("2819ec852c134ff7a481d7adbc3f1a085bc9f6b250a5917a822703f191f3ea4d"),
 		},
 		{
-			x:    feFromHex("dbf9ace2b5d50a2974d1227c37571235055b3ceccc5b075d0a7dccb571a0e497"),
-			want: feFromHex("72bde2e2f464bbcb043d01e6901f8949b90a9167775cf278990a1a31d321a691"),
+			x:    new(fieldElement).SetString("dbf9ace2b5d50a2974d1227c37571235055b3ceccc5b075d0a7dccb571a0e497"),
+			want: new(fieldElement).SetString("72bde2e2f464bbcb043d01e6901f8949b90a9167775cf278990a1a31d321a691"),
 		},
 		{
-			x:    feFromHex("49a25b63783bc98313dc9590892d74a4e6ef2daac04910d9a84ba0c45f62ba37"),
-			want: feFromHex("58e94d66dc3b8bb3a6e07fa7998e38084b9a374eb4da29b70d26f7c77531b287"),
+			x:    new(fieldElement).SetString("49a25b63783bc98313dc9590892d74a4e6ef2daac04910d9a84ba0c45f62ba37"),
+			want: new(fieldElement).SetString("58e94d66dc3b8bb3a6e07fa7998e38084b9a374eb4da29b70d26f7c77531b287"),
 		},
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("g(%s)", test.x), func(t *testing.T) {
 			t.Parallel()
-			if got, want := g(test.x), test.want; !got.Equal(want) {
+			if got, want := g(test.x), test.want; got.Cmp(want) != 0 {
 				t.Errorf("g(%s) = %s, want = %s", test.x, got, want)
 			}
 		})
@@ -132,50 +132,50 @@ func TestX0(t *testing.T) {
 		x, want *fieldElement
 	}{
 		{
-			x:    feFromHex("cb2943cf0b5476a59d206e7fe380e8b135a02db4733db3d158fd55636ccf899b"),
-			want: feFromHex("c5f4959fc0f7067b69974b5d9efcf923305935912ab99c5831b99da67f1900e6"),
+			x:    new(fieldElement).SetString("cb2943cf0b5476a59d206e7fe380e8b135a02db4733db3d158fd55636ccf899b"),
+			want: new(fieldElement).SetString("c5f4959fc0f7067b69974b5d9efcf923305935912ab99c5831b99da67f1900e6"),
 		},
 		{
-			x:    feFromHex("392a2a37ff8ef4d55f22b1d7683c3c597a07dbd587ae26d446bb92e8d740a3d8"),
-			want: feFromHex("a27be5e04212e6e71db063f8d42e470938405b33164fc1c62e12251f5e1fe106"),
+			x:    new(fieldElement).SetString("392a2a37ff8ef4d55f22b1d7683c3c597a07dbd587ae26d446bb92e8d740a3d8"),
+			want: new(fieldElement).SetString("a27be5e04212e6e71db063f8d42e470938405b33164fc1c62e12251f5e1fe106"),
 		},
 		{
-			x:    feFromHex("95e5053c38c001e4abbc20701a2ce7bde00bc21e945b61cbd18759c2a3d520c5"),
-			want: feFromHex("27e445195a1958cc6bdb6010cdf2225781ce4a40ffd65798f1d3c7cc0f5d5979"),
+			x:    new(fieldElement).SetString("95e5053c38c001e4abbc20701a2ce7bde00bc21e945b61cbd18759c2a3d520c5"),
+			want: new(fieldElement).SetString("27e445195a1958cc6bdb6010cdf2225781ce4a40ffd65798f1d3c7cc0f5d5979"),
 		},
 		{
-			x:    feFromHex("43978799b731aed92b92c3d07c1f2060e552eaedc024f1686dd547dc8d5b3d83"),
-			want: feFromHex("b66058282f37a19fac62ffdc3353cfbc8d2a79124ed149ad9882d25c0441c109"),
+			x:    new(fieldElement).SetString("43978799b731aed92b92c3d07c1f2060e552eaedc024f1686dd547dc8d5b3d83"),
+			want: new(fieldElement).SetString("b66058282f37a19fac62ffdc3353cfbc8d2a79124ed149ad9882d25c0441c109"),
 		},
 		{
-			x:    feFromHex("25ed83e1ef078e5bf999b77c252873797146eeea53eb127093acb64097a929ad"),
-			want: feFromHex("3da6debc73df325e25873929d3110646f598ea12cf346f0ac6032ab94096953e"),
+			x:    new(fieldElement).SetString("25ed83e1ef078e5bf999b77c252873797146eeea53eb127093acb64097a929ad"),
+			want: new(fieldElement).SetString("3da6debc73df325e25873929d3110646f598ea12cf346f0ac6032ab94096953e"),
 		},
 		{
-			x:    feFromHex("76aa61bd4c008daf6dde17f5a88e8131e6529187c09407ba86bd14448f334270"),
-			want: feFromHex("591e27ad76d5be879d8c8fd756155687751d29a710079c25d35f2a47ff000dff"),
+			x:    new(fieldElement).SetString("76aa61bd4c008daf6dde17f5a88e8131e6529187c09407ba86bd14448f334270"),
+			want: new(fieldElement).SetString("591e27ad76d5be879d8c8fd756155687751d29a710079c25d35f2a47ff000dff"),
 		},
 		{
-			x:    feFromHex("29c6dffcce6132eb0554561072d7d05d410b8c351f07c500d9d6ce034e5cadda"),
-			want: feFromHex("d100c5674f2b0a43f153981bcbca3b79402ceced78e4f95b1b5b45fff66b0253"),
+			x:    new(fieldElement).SetString("29c6dffcce6132eb0554561072d7d05d410b8c351f07c500d9d6ce034e5cadda"),
+			want: new(fieldElement).SetString("d100c5674f2b0a43f153981bcbca3b79402ceced78e4f95b1b5b45fff66b0253"),
 		},
 		{
-			x:    feFromHex("0d891a4ee7d34246ce7dbf5d8905d088a2708e8111fad4b54248848ce45f5211"),
-			want: feFromHex("1f32e00e2c393a9ea863c63d4058af10691b9c0efccb2bc874736e2b51638ca7"),
+			x:    new(fieldElement).SetString("0d891a4ee7d34246ce7dbf5d8905d088a2708e8111fad4b54248848ce45f5211"),
+			want: new(fieldElement).SetString("1f32e00e2c393a9ea863c63d4058af10691b9c0efccb2bc874736e2b51638ca7"),
 		},
 		{
-			x:    feFromHex("113a2a45d36ed4a056660d9a616469cc642ce6ce7afffdb9fd5d2191d3eb5940"),
-			want: feFromHex("260fca36f5fd3ea11fd7e03b29476cd878b9fe021718ddc5475cb747db34b63e"),
+			x:    new(fieldElement).SetString("113a2a45d36ed4a056660d9a616469cc642ce6ce7afffdb9fd5d2191d3eb5940"),
+			want: new(fieldElement).SetString("260fca36f5fd3ea11fd7e03b29476cd878b9fe021718ddc5475cb747db34b63e"),
 		},
 		{
-			x:    feFromHex("65562cec98b8b4def060db947dc9152d3f0282dc365c6dcbe86fbad6ecccd088"),
-			want: feFromHex("0643980e0a08f4f0e196ebfd07b22c46b27dbc4c4003dbf56c1640c6ad5519e0"),
+			x:    new(fieldElement).SetString("65562cec98b8b4def060db947dc9152d3f0282dc365c6dcbe86fbad6ecccd088"),
+			want: new(fieldElement).SetString("0643980e0a08f4f0e196ebfd07b22c46b27dbc4c4003dbf56c1640c6ad5519e0"),
 		},
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("x_0(%s)", test.x), func(t *testing.T) {
 			t.Parallel()
-			if got, want := x0(test.x), test.want; !got.Equal(want) {
+			if got, want := x0(test.x), test.want; got.Cmp(want) != 0 {
 				t.Errorf("x_0(%s) = %s, want = %s", test.x, got, want)
 			}
 		})
@@ -188,50 +188,50 @@ func TestX1(t *testing.T) {
 		x, want *fieldElement
 	}{
 		{
-			x:    feFromHex("bdd250da6bd46362873bbb7479263c3fdf3007f09b23646bb523b36250de95a2"),
-			want: feFromHex("f67e0bf48295c68945959628d26e2d61f5aaaa51dbe1201d889cd6b40a44f283"),
+			x:    new(fieldElement).SetString("bdd250da6bd46362873bbb7479263c3fdf3007f09b23646bb523b36250de95a2"),
+			want: new(fieldElement).SetString("f67e0bf48295c68945959628d26e2d61f5aaaa51dbe1201d889cd6b40a44f283"),
 		},
 		{
-			x:    feFromHex("7440eb92ec8a5b06be6cb1e7db2ba4e93012931fe2d10398cb739633ea0ab797"),
-			want: feFromHex("6b23a7dddab608e323cb34108c13b034343414ef59c583c6d26c0a528fadedbf"),
+			x:    new(fieldElement).SetString("7440eb92ec8a5b06be6cb1e7db2ba4e93012931fe2d10398cb739633ea0ab797"),
+			want: new(fieldElement).SetString("6b23a7dddab608e323cb34108c13b034343414ef59c583c6d26c0a528fadedbf"),
 		},
 		{
-			x:    feFromHex("d5d5ddbac418d9c479cda8d2f59fb81f65294b29a1c783307df948099194f0d9"),
-			want: feFromHex("29cbaa4f8733df0326f44d8c8eacec5f7e1b3884cbee361cf6e96a0927672fd9"),
+			x:    new(fieldElement).SetString("d5d5ddbac418d9c479cda8d2f59fb81f65294b29a1c783307df948099194f0d9"),
+			want: new(fieldElement).SetString("29cbaa4f8733df0326f44d8c8eacec5f7e1b3884cbee361cf6e96a0927672fd9"),
 		},
 		{
-			x:    feFromHex("a85bfacf9af92864a125709eed04b5f6f1c76f84e16aafd4d931d049177b6f26"),
-			want: feFromHex("bb0ddea97cdd6d57e6060525d6e9781b0cae283b7abfb924809283f5fa11e200"),
+			x:    new(fieldElement).SetString("a85bfacf9af92864a125709eed04b5f6f1c76f84e16aafd4d931d049177b6f26"),
+			want: new(fieldElement).SetString("bb0ddea97cdd6d57e6060525d6e9781b0cae283b7abfb924809283f5fa11e200"),
 		},
 		{
-			x:    feFromHex("4df7a4e4f51c500cd110a56395275a2e36c272a6f4fe6a2c0def5f0e33a91e62"),
-			want: feFromHex("63c69a3928a4febc7ece597fb31e56227d32a53580d9516a2951499869459d4a"),
+			x:    new(fieldElement).SetString("4df7a4e4f51c500cd110a56395275a2e36c272a6f4fe6a2c0def5f0e33a91e62"),
+			want: new(fieldElement).SetString("63c69a3928a4febc7ece597fb31e56227d32a53580d9516a2951499869459d4a"),
 		},
 		{
-			x:    feFromHex("05b4af58b9613f6e2d8d47cb1135f1d09bf1a5571f1877f4878ae3dd06bd168c"),
-			want: feFromHex("d9c63ebe1be4911b47ebe174cc99dab661c035afbb08badec47e53b7c92c2b5f"),
+			x:    new(fieldElement).SetString("05b4af58b9613f6e2d8d47cb1135f1d09bf1a5571f1877f4878ae3dd06bd168c"),
+			want: new(fieldElement).SetString("d9c63ebe1be4911b47ebe174cc99dab661c035afbb08badec47e53b7c92c2b5f"),
 		},
 		{
-			x:    feFromHex("dadb5a5bdc1f8dd946de072e7d38abc03d7ea175775409fae8a23a1017675a94"),
-			want: feFromHex("0f363dfd9aba34f981bfa241a1986f4c48af75770987898bcba4eb70a611f4e2"),
+			x:    new(fieldElement).SetString("dadb5a5bdc1f8dd946de072e7d38abc03d7ea175775409fae8a23a1017675a94"),
+			want: new(fieldElement).SetString("0f363dfd9aba34f981bfa241a1986f4c48af75770987898bcba4eb70a611f4e2"),
 		},
 		{
-			x:    feFromHex("a2498d3dc802ee753d814ff8822afab15cd3fddff488abff46ea8c01b32579dd"),
-			want: feFromHex("7d381226f433f548d56f1ebcadafeb83ab100819d9b29c952362bb87f3993b60"),
+			x:    new(fieldElement).SetString("a2498d3dc802ee753d814ff8822afab15cd3fddff488abff46ea8c01b32579dd"),
+			want: new(fieldElement).SetString("7d381226f433f548d56f1ebcadafeb83ab100819d9b29c952362bb87f3993b60"),
 		},
 		{
-			x:    feFromHex("f2cd2e0850e38c08b0a029b9bcb72a4a98c03045fbde2bd000eb3a1418575975"),
-			want: feFromHex("89f984ec24e0221409fb77d4c5f68010e15102bf46099d52c99749a00dcea42a"),
+			x:    new(fieldElement).SetString("f2cd2e0850e38c08b0a029b9bcb72a4a98c03045fbde2bd000eb3a1418575975"),
+			want: new(fieldElement).SetString("89f984ec24e0221409fb77d4c5f68010e15102bf46099d52c99749a00dcea42a"),
 		},
 		{
-			x:    feFromHex("723b70f2a8ac8b49dac17a36f0f1f90e24beb2ec5f78e3d8553b837ed7856266"),
-			want: feFromHex("193a9c2714883a2310d191c722379aced9f06fc61f4bae094edaf211ac825ad0"),
+			x:    new(fieldElement).SetString("723b70f2a8ac8b49dac17a36f0f1f90e24beb2ec5f78e3d8553b837ed7856266"),
+			want: new(fieldElement).SetString("193a9c2714883a2310d191c722379aced9f06fc61f4bae094edaf211ac825ad0"),
 		},
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("x_1(%s)", test.x), func(t *testing.T) {
 			t.Parallel()
-			if got, want := x1(test.x), test.want; !got.Equal(want) {
+			if got, want := x1(test.x), test.want; got.Cmp(want) != 0 {
 				t.Errorf("x_1(%s) = %s, want = %s", test.x, got, want)
 			}
 		})
@@ -244,61 +244,61 @@ func TestF(t *testing.T) {
 		u, x, y *fieldElement
 	}{
 		{
-			u: feFromHex("87789ed27e8a8078b283bc0f755af77e74a47755d25a6afb10be866b89297696"),
-			x: feFromHex("a054c994d3538c7ab3f325b3dfcb743991869cbf9b136cd78cea7a484208433e"),
-			y: feFromHex("c5c664c9341db26132486565fb0169ce8a24f4ec1598b09d5b1441f658395779"),
+			u: new(fieldElement).SetString("87789ed27e8a8078b283bc0f755af77e74a47755d25a6afb10be866b89297696"),
+			x: new(fieldElement).SetString("a054c994d3538c7ab3f325b3dfcb743991869cbf9b136cd78cea7a484208433e"),
+			y: new(fieldElement).SetString("c5c664c9341db26132486565fb0169ce8a24f4ec1598b09d5b1441f658395779"),
 		},
 		{
-			u: feFromHex("8c73f5f6e30d54b5f119d1ad9de4f24157aaab701bb724fc01c93457da680bcb"),
-			x: feFromHex("26d80e7bcdf004cde2b1ab530f12eff2526c26c25be64e64a6639177a3e7dd32"),
-			y: feFromHex("5cc49c52d1c6c83ddcefa1d21d9c6ce126c618ae2773398c0940ffc9c1960e20"),
+			u: new(fieldElement).SetString("8c73f5f6e30d54b5f119d1ad9de4f24157aaab701bb724fc01c93457da680bcb"),
+			x: new(fieldElement).SetString("26d80e7bcdf004cde2b1ab530f12eff2526c26c25be64e64a6639177a3e7dd32"),
+			y: new(fieldElement).SetString("5cc49c52d1c6c83ddcefa1d21d9c6ce126c618ae2773398c0940ffc9c1960e20"),
 		},
 		{
-			u: feFromHex("7e0e9901aa67574a613432a54c1e9be9192b30556fedd69f778f7e259a74b929"),
-			x: feFromHex("e8809ecf13bb5de7b1ec4c44e45d0f4447e69708f3467cf4507851043cd548b7"),
-			y: feFromHex("06369669d6b4722672fa1bee48fb73ed07d2aa5a691938fb711a1395fe9421f0"),
+			u: new(fieldElement).SetString("7e0e9901aa67574a613432a54c1e9be9192b30556fedd69f778f7e259a74b929"),
+			x: new(fieldElement).SetString("e8809ecf13bb5de7b1ec4c44e45d0f4447e69708f3467cf4507851043cd548b7"),
+			y: new(fieldElement).SetString("06369669d6b4722672fa1bee48fb73ed07d2aa5a691938fb711a1395fe9421f0"),
 		},
 		{
-			u: feFromHex("b05fda93d519726e785db2e990e8908dee50d69aa557a3beea56171108e2e8d6"),
-			x: feFromHex("1e1e5d73554203269ccc12afb174a2cc3c082e9dd35ca19813704b707e8ec525"),
-			y: feFromHex("eef17e6bfedf7c58f6565bac7e9e3552b76e093b127d1b01d292e33a56016261"),
+			u: new(fieldElement).SetString("b05fda93d519726e785db2e990e8908dee50d69aa557a3beea56171108e2e8d6"),
+			x: new(fieldElement).SetString("1e1e5d73554203269ccc12afb174a2cc3c082e9dd35ca19813704b707e8ec525"),
+			y: new(fieldElement).SetString("eef17e6bfedf7c58f6565bac7e9e3552b76e093b127d1b01d292e33a56016261"),
 		},
 		{
-			u: feFromHex("995b72f5b47654ed00af806d46f36b2002e82a4810196c79931cd18381ea7a47"),
-			x: feFromHex("3ade7bd63cf6e0cf9ad85e0ac46ed0b6cd21b82e885ffaf11cfd5cafda6d279e"),
-			y: feFromHex("b5ad932a6dbdab8dd76f1be9a702a4fa395816e70dac4190ccde9394fd4e5795"),
+			u: new(fieldElement).SetString("995b72f5b47654ed00af806d46f36b2002e82a4810196c79931cd18381ea7a47"),
+			x: new(fieldElement).SetString("3ade7bd63cf6e0cf9ad85e0ac46ed0b6cd21b82e885ffaf11cfd5cafda6d279e"),
+			y: new(fieldElement).SetString("b5ad932a6dbdab8dd76f1be9a702a4fa395816e70dac4190ccde9394fd4e5795"),
 		},
 		{
-			u: feFromHex("af3432feb8945d7523586b9a3f0ac70367579cd055e9410e002f6017e151baaa"),
-			x: feFromHex("0a7549e3f575c1547239727a98fe8ba94dc96e004853beb66a951eb9fdb5b8a5"),
-			y: feFromHex("39c1934d73648b6217af2de4325fb637bfc5771ca6913a3a8c7f7f6d289d35f3"),
+			u: new(fieldElement).SetString("af3432feb8945d7523586b9a3f0ac70367579cd055e9410e002f6017e151baaa"),
+			x: new(fieldElement).SetString("0a7549e3f575c1547239727a98fe8ba94dc96e004853beb66a951eb9fdb5b8a5"),
+			y: new(fieldElement).SetString("39c1934d73648b6217af2de4325fb637bfc5771ca6913a3a8c7f7f6d289d35f3"),
 		},
 		{
-			u: feFromHex("78d6cc6490a28ce13bfd1a3617a4ca271ba3547f0c649a9c12148835f6456d6f"),
-			x: feFromHex("5ff0e184e4e9a55c9960c00f16ea36a1f8223093bf97559f5994a4934b4d266c"),
-			y: feFromHex("da9a9b34cdc048c7b4d11be543d7d5a7d7969a02c9f5960a45ab303e7135f62a"),
+			u: new(fieldElement).SetString("78d6cc6490a28ce13bfd1a3617a4ca271ba3547f0c649a9c12148835f6456d6f"),
+			x: new(fieldElement).SetString("5ff0e184e4e9a55c9960c00f16ea36a1f8223093bf97559f5994a4934b4d266c"),
+			y: new(fieldElement).SetString("da9a9b34cdc048c7b4d11be543d7d5a7d7969a02c9f5960a45ab303e7135f62a"),
 		},
 		{
-			u: feFromHex("209a7a8b88dbfa8b042064020d9549414d0f2b7e2ca61031a83848c5cd7edf80"),
-			x: feFromHex("a3eb60ee110f0544b9c99395a3f201f196b8d739d19b61bd7dba7214a6e0be60"),
-			y: feFromHex("72c75184a034da408b6f2c7f4c8c0132bd2595f38d86898c148c730b289b8550"),
+			u: new(fieldElement).SetString("209a7a8b88dbfa8b042064020d9549414d0f2b7e2ca61031a83848c5cd7edf80"),
+			x: new(fieldElement).SetString("a3eb60ee110f0544b9c99395a3f201f196b8d739d19b61bd7dba7214a6e0be60"),
+			y: new(fieldElement).SetString("72c75184a034da408b6f2c7f4c8c0132bd2595f38d86898c148c730b289b8550"),
 		},
 		{
-			u: feFromHex("251102e9077d60fa9e1d69ee01c24109f3b0c68e3fc933dad1a83f6891770440"),
-			x: feFromHex("cb9519b2440de85d517a373c3a3187ac654f4a8cd156db4bf1272c613d00276a"),
-			y: feFromHex("432004f5fe3ff509f6ee8dbd25f1ad59528624853c46b43e9d925b18d312fdc9"),
+			u: new(fieldElement).SetString("251102e9077d60fa9e1d69ee01c24109f3b0c68e3fc933dad1a83f6891770440"),
+			x: new(fieldElement).SetString("cb9519b2440de85d517a373c3a3187ac654f4a8cd156db4bf1272c613d00276a"),
+			y: new(fieldElement).SetString("432004f5fe3ff509f6ee8dbd25f1ad59528624853c46b43e9d925b18d312fdc9"),
 		},
 		{
-			u: feFromHex("8814cc19005dc1d05e26518869388abb39c4fbfd6ed93e81b355762f8b55d9ea"),
-			x: feFromHex("93aff2b3d6aa61fd0c70a83556d0ffca2f24c2ae2e95ee010588eeeed5e93c84"),
-			y: feFromHex("ef3b58a72afa62042df1637407840e58b29ab94f226666b6774edd96c836ea32"),
+			u: new(fieldElement).SetString("8814cc19005dc1d05e26518869388abb39c4fbfd6ed93e81b355762f8b55d9ea"),
+			x: new(fieldElement).SetString("93aff2b3d6aa61fd0c70a83556d0ffca2f24c2ae2e95ee010588eeeed5e93c84"),
+			y: new(fieldElement).SetString("ef3b58a72afa62042df1637407840e58b29ab94f226666b6774edd96c836ea32"),
 		},
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("f(%s)", test.u), func(t *testing.T) {
 			t.Parallel()
 			gotX, gotY := f(test.u)
-			if !gotX.Equal(test.x) || !gotY.Equal(test.y) {
+			if gotX.Cmp(test.x) != 0 || gotY.Cmp(test.y) != 0 {
 				t.Errorf("f(%s) = (%s, %s), want = (%s, %s)", test.u, gotX, gotY, test.x, test.y)
 			}
 		})

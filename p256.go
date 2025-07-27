@@ -6,6 +6,7 @@ import (
 	"math/big"
 )
 
+//nolint:funlen // this is just complicated, man
 func p256Add(x1, y1, x2, y2 *fieldElement) (x3, y3 *fieldElement) {
 	// Complete addition formula for a = -3 from "Complete addition formulas for
 	// prime order elliptic curves" (https://eprint.iacr.org/2015/1060), §A.2.

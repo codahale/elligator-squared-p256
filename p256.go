@@ -143,7 +143,7 @@ func (e *fieldElement) Cmp(x *fieldElement) int {
 }
 
 func (e *fieldElement) CmpAbs(x *fieldElement) int {
-	return e.v.Cmp(&x.v)
+	return e.v.CmpAbs(&x.v)
 }
 
 func (e *fieldElement) Sqrt(x *fieldElement) *fieldElement {

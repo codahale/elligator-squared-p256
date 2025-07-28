@@ -8,13 +8,9 @@ import (
 
 //nolint:funlen // this is just complicated, man
 func p256Add(x1, y1, x2, y2 *fieldElement) (x3, y3 *fieldElement) {
-	// Complete addition formula for a = -3 from "Complete addition formulas for
-	// prime order elliptic curves" (https://eprint.iacr.org/2015/1060), §A.2.
-
+	// Convert to projective.
 	z1 := new(fieldElement)
 	z2 := new(fieldElement)
-
-	// Convert to projective.
 	zero := new(fieldElement).SetInt64(0)
 	if x1.Cmp(zero) != 0 && y1.Cmp(zero) != 0 {
 		z1.v.SetInt64(1)
@@ -23,6 +19,8 @@ func p256Add(x1, y1, x2, y2 *fieldElement) (x3, y3 *fieldElement) {
 		z2.v.SetInt64(1)
 	}
 
+	// Complete addition formula for a = -3 from "Complete addition formulas for
+	// prime order elliptic curves" (https://eprint.iacr.org/2015/1060), §A.2.
 	t0 := new(fieldElement).Mul(x1, x2) // t0 := X1 * X2
 	t1 := new(fieldElement).Mul(y1, y2) // t1 := Y1 * Y2
 	t2 := new(fieldElement).Mul(z1, z2) // t2 := Z1 * Z2
@@ -68,6 +66,7 @@ func p256Add(x1, y1, x2, y2 *fieldElement) (x3, y3 *fieldElement) {
 	t1.Mul(t3, t0)                     // t1 := t3 * t0
 	z3.Add(z3, t1)                     // Z3 := Z3 + t1
 
+	// Convert back to affine.
 	z3Inv := new(fieldElement).Invert(z3)
 	x3.Mul(x3, z3Inv)
 	y3.Mul(y3, z3Inv)
@@ -84,10 +83,20 @@ func (e *fieldElement) SetInt64(v int64) *fieldElement {
 	return e
 }
 
+func (e *fieldElement) Bytes() []byte {
+	var bytes [32]byte
+	e.v.FillBytes(bytes[:])
+	return bytes[:]
+}
+
 func (e *fieldElement) SetBytes(b []byte) *fieldElement {
 	e.v.SetBytes(b)
 	e.v.Mod(&e.v, elliptic.P256().Params().P)
 	return e
+}
+
+func (e *fieldElement) String() string {
+	return hex.EncodeToString(e.Bytes())
 }
 
 func (e *fieldElement) SetString(s string) *fieldElement {
@@ -126,16 +135,6 @@ func (e *fieldElement) Neg(x *fieldElement) *fieldElement {
 func (e *fieldElement) Invert(x *fieldElement) *fieldElement {
 	e.v.ModInverse(&x.v, elliptic.P256().Params().P)
 	return e
-}
-
-func (e *fieldElement) Bytes() []byte {
-	var bytes [32]byte
-	e.v.FillBytes(bytes[:])
-	return bytes[:]
-}
-
-func (e *fieldElement) String() string {
-	return hex.EncodeToString(e.Bytes())
 }
 
 func (e *fieldElement) Cmp(x *fieldElement) int {
